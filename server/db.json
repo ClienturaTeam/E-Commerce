@@ -332,6 +332,96 @@
   ],
   "orders": [
     {
+      "id": "KARTLY-20260907-84577",
+      "order_id": "KARTLY-20260907-84577",
+      "userId": "usr-demo",
+      "user_id": "usr-demo",
+      "date": "07 Sept 2026",
+      "created_at": "2026-09-07T09:02:45.774Z",
+      "order_status": "confirmed",
+      "status": "CONFIRMED",
+      "payment_status": "success",
+      "payment_method": "upi",
+      "expectedDelivery": "10 Sept 2026",
+      "items": [
+        {
+          "product_id": "nexon-note-5g",
+          "title": "Nexon Note 12 5G, 8GB RAM, 128GB, 50MP AI Camera",
+          "price": 13499,
+          "mrp": 18999,
+          "qty": 2,
+          "quantity": 2,
+          "category": "Mobiles",
+          "variant": {
+            "color": "Default",
+            "size": "Standard"
+          },
+          "gstRate": 18,
+          "gstAmount": 4860,
+          "total": 26998
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "userId": "usr-demo",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home",
+        "isDefault": true
+      },
+      "payment": {
+        "method": "upi",
+        "status": "success",
+        "details": {},
+        "transactionId": "TXN-AUTO-998822"
+      },
+      "subtotal": 26998,
+      "mrpTotal": 37998,
+      "discount": 11000,
+      "gst_amount": 4860,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 30868,
+      "final_amount": 30868,
+      "timeline": [
+        {
+          "status": "placed",
+          "date": "07 Sept 2026",
+          "time": "02:32 pm",
+          "completed": true
+        },
+        {
+          "status": "confirmed",
+          "date": "07 Sept 2026",
+          "time": "02:32 pm",
+          "completed": true
+        },
+        {
+          "status": "shipped",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "out_for_delivery",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "delivered",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
       "id": "KARTLY-20260907-95976",
       "order_id": "KARTLY-20260907-95976",
       "userId": "usr-demo",

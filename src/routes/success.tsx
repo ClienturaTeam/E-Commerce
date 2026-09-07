@@ -27,7 +27,13 @@ export const Route = createFileRoute("/success")({
 });
 
 function SuccessRoute() {
-  return <SuccessPage />;
+  return (
+    <StoreProvider>
+      <SuccessPage />
+      <CartPanel />
+      <ChatBot />
+    </StoreProvider>
+  );
 }
 
 function SuccessPage() {

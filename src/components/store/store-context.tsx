@@ -264,6 +264,76 @@ const normalizeProductLine = (item: any): CartLine | null => {
   return null;
 };
 
+const normalizeOrder = (o: any): Order | null => {
+  if (!o) return null;
+  const orderId = String(o.id || o.order_id || `KARTLY-ORD-${Date.now()}`);
+  const rawStatus = (o.status || o.order_status || "PLACED").toString().toUpperCase();
+  const status: OrderStatus = (
+    ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "RETURN_REQUESTED", "RETURNED", "REFUNDED"].includes(rawStatus)
+      ? rawStatus
+      : "PLACED"
+  ) as OrderStatus;
+
+  const totalAmount = Number(o.totalAmount || o.final_amount || o.finalAmount || o.total_amount || 0);
+
+  const rawItems = Array.isArray(o.items) ? o.items : [];
+  const normalizedItems = rawItems.map((item: any) => {
+    const prod = item.product || item;
+    return {
+      product: {
+        id: String(prod.id || prod.product_id || "prod-unknown"),
+        title: prod.title || prod.name || "Product",
+        price: Number(prod.price || prod.base_price || 0),
+        mrp: Number(prod.mrp || prod.price || prod.base_price || 0),
+        brand: prod.brand || "Kartly",
+        image: prod.image || "https://picsum.photos/300",
+        category: prod.category || "general",
+        rating: Number(prod.rating) || 4.5,
+        reviews: Number(prod.reviews) || 10,
+        ...prod,
+      },
+      qty: Number(item.qty || item.quantity || 1),
+      priceAtPurchase: Number(item.priceAtPurchase || item.price || prod.price || 0),
+    };
+  });
+
+  return {
+    ...o,
+    id: orderId,
+    order_id: orderId,
+    date: o.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+    created_at: o.created_at || new Date().toISOString(),
+    items: normalizedItems,
+    subtotal: Number(o.subtotal || o.total_amount || totalAmount),
+    discount: Number(o.discount || 0),
+    deliveryCharge: Number(o.deliveryCharge || o.delivery_fee || 0),
+    couponDiscount: Number(o.couponDiscount || o.coupon_discount || 0),
+    totalAmount,
+    final_amount: totalAmount,
+    address: o.address || {
+      id: "addr-1",
+      name: o.user_name || "Customer",
+      phone: "9999999999",
+      house: "Flat 402",
+      street: "Main Street",
+      city: "Hyderabad",
+      state: "Telangana",
+      pincode: "500034",
+      type: "home",
+    },
+    payment: o.payment || {
+      method: o.payment_method || "upi",
+      providerName: "Payment Gateway",
+      status: o.payment_status || "SUCCESS",
+    },
+    status,
+    order_status: status,
+    payment_status: o.payment_status || "SUCCESS",
+    estimatedDelivery: o.estimatedDelivery || o.expectedDelivery || "3-5 Days",
+    timeline: Array.isArray(o.timeline) ? o.timeline : [],
+  };
+};
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState("For You");
@@ -305,7 +375,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setPincode(safeRead<string>("antigravity_pincode", safeRead<string>("kartly.pincode", "560001")));
     setSavedAddress(safeRead<DeliveryAddress | null>("antigravity_address", null));
     setAddresses(safeRead<Address[]>("kartly.addresses", INITIAL_ADDRESSES));
-    setOrders(safeRead<Order[]>("kartly.orders", INITIAL_ORDERS));
+    const rawOrders = safeRead<any[]>("kartly.orders", INITIAL_ORDERS);
+    setOrders(Array.isArray(rawOrders) ? rawOrders.map(normalizeOrder).filter((o): o is Order => Boolean(o)) : INITIAL_ORDERS);
     setCustomReviews(safeRead<Record<string, any[]>>("kartly.custom_reviews", {}));
 
     // Async sync with Express Backend APIs
@@ -320,8 +391,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const orderRes = await fetchOrdersApi();
-        if (orderRes?.success && Array.isArray(orderRes.orders)) {
-          setOrders(orderRes.orders);
+        if (orderRes?.success && Array.isArray(orderRes.orders) && orderRes.orders.length > 0) {
+          const apiOrders = orderRes.orders.map(normalizeOrder).filter((o): o is Order => Boolean(o));
+          if (apiOrders.length > 0) setOrders(apiOrders);
         }
       } catch (err) {}
 

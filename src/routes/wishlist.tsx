@@ -10,8 +10,18 @@ import { StoreProvider, useStore } from "@/components/store/store-context";
 import { inr } from "@/components/store/catalog";
 
 export const Route = createFileRoute("/wishlist")({
-  component: WishlistPage,
+  component: WishlistRoute,
 });
+
+function WishlistRoute() {
+  return (
+    <StoreProvider>
+      <WishlistPage />
+      <CartPanel />
+      <ChatBot />
+    </StoreProvider>
+  );
+}
 
 function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useStore();

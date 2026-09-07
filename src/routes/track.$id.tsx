@@ -31,7 +31,13 @@ export const Route = createFileRoute("/track/$id")({
 });
 
 function TrackRoute() {
-  return <TrackPage />;
+  return (
+    <StoreProvider>
+      <TrackPage />
+      <CartPanel />
+      <ChatBot />
+    </StoreProvider>
+  );
 }
 
 const STEPS: { status: OrderStatus; label: string; description: string; icon: React.ElementType }[] = [

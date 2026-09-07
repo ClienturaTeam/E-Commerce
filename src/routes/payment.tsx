@@ -42,7 +42,13 @@ export const Route = createFileRoute("/payment")({
 });
 
 function PaymentRoute() {
-  return <PaymentPage />;
+  return (
+    <StoreProvider>
+      <PaymentPage />
+      <CartPanel />
+      <ChatBot />
+    </StoreProvider>
+  );
 }
 
 type FormErrors = {

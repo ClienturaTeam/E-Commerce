@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { SiteHeader } from "@/components/store/SiteHeader";
 import { SiteFooter } from "@/components/store/SiteFooter";
+import { CartPanel } from "@/components/store/CartPanel";
+import { ChatBot } from "@/components/store/ChatBot";
 import { StoreProvider, useStore } from "@/components/store/store-context";
 import { inr } from "@/components/store/catalog";
 
@@ -23,7 +25,13 @@ export const Route = createFileRoute("/orders/$id")({
 });
 
 function OrderDetailRoute() {
-  return <OrderDetailPage />;
+  return (
+    <StoreProvider>
+      <OrderDetailPage />
+      <CartPanel />
+      <ChatBot />
+    </StoreProvider>
+  );
 }
 
 function OrderDetailPage() {

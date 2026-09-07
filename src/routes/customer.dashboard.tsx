@@ -7,6 +7,9 @@ import { StoreProvider, useStore } from "@/components/store/store-context";
 import { EnterpriseAuthProvider, useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 import { inr } from "@/components/store/catalog";
 
+import { CartPanel } from "@/components/store/CartPanel";
+import { ChatBot } from "@/components/store/ChatBot";
+
 import { RequirePortalAuth } from "@/components/auth/RequirePortalAuth";
 
 export const Route = createFileRoute("/customer/dashboard")({
@@ -15,9 +18,13 @@ export const Route = createFileRoute("/customer/dashboard")({
 
 function CustomerDashboardRoute() {
   return (
-    <RequirePortalAuth requiredRole="CUSTOMER">
-      <CustomerDashboardPage />
-    </RequirePortalAuth>
+    <StoreProvider>
+      <RequirePortalAuth requiredRole="CUSTOMER">
+        <CustomerDashboardPage />
+      </RequirePortalAuth>
+      <CartPanel />
+      <ChatBot />
+    </StoreProvider>
   );
 }
 

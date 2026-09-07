@@ -1791,5 +1791,5 @@ export const products: Product[] = [
   },
 ];
 
-export const inr = (n: number) => "₹" + n.toLocaleString("en-IN");
+export const inr = (n?: number | null) => "₹" + (Number(n) || 0).toLocaleString("en-IN");
 export const baseProducts = products;
