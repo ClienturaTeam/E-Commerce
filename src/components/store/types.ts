@@ -7,6 +7,15 @@ export interface UserProfile {
   isAuth: boolean;
 }
 
+export interface ReviewItem {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+  verified?: boolean;
+}
+
 export interface Address {
   id: string;
   name: string;

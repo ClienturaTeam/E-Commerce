@@ -23,6 +23,7 @@ import { SiteHeader } from "@/components/store/SiteHeader";
 import { SiteFooter } from "@/components/store/SiteFooter";
 import { CartPanel } from "@/components/store/CartPanel";
 import { ChatBot } from "@/components/store/ChatBot";
+import { UpiPaymentWidget } from "@/components/store/UpiPaymentWidget";
 import {
   StoreProvider,
   useStore,
@@ -33,6 +34,9 @@ import { products, inr } from "@/components/store/catalog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/payment")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    orderId: (search.orderId as string) || undefined,
+  }),
   component: PaymentRoute,
 });
 
@@ -40,33 +44,78 @@ function PaymentRoute() {
   return <PaymentPage />;
 }
 
+type FormErrors = {
+  upiId?: string;
+  cardName?: string;
+  cardNumber?: string;
+  cardExpiry?: string;
+  cardCvv?: string;
+  bank?: string;
+};
+
 function PaymentPage() {
-  const { cart, savedAddress, addOrder } = useStore();
+  const { cart, savedAddress, placeOrder, orders, setOrders, clearCart, clearBuyNow } = useStore();
+  const search = Route.useSearch();
   const navigate = useNavigate();
 
-  // Fallback demo items if cart is empty so Payment Page ALWAYS works clearly
+  // Hydrate target order from search params or localStorage
+  const lastOrderId = React.useMemo(() => {
+    if (search.orderId) return search.orderId;
+    try {
+      if (typeof window !== "undefined") {
+        return window.localStorage.getItem("kartly.lastOrderId");
+      }
+    } catch {}
+    return null;
+  }, [search.orderId]);
+
+  const targetOrder = React.useMemo(() => {
+    if (lastOrderId) {
+      const found = orders.find((o) => o.id === lastOrderId);
+      if (found) return found;
+    }
+    return orders.length > 0 ? orders[0] : null;
+  }, [lastOrderId, orders]);
+
+  // Fallback items if cart is empty so Payment Page ALWAYS works clearly
   const activeCartItems: CartLine[] = React.useMemo(() => {
+    if (targetOrder && targetOrder.items && targetOrder.items.length > 0) {
+      return targetOrder.items.map((i) => ({ product: i.product, qty: i.qty }));
+    }
     if (cart.length > 0) return cart;
+    const p1 = products[0]!;
+    const p2 = products[1]!;
     return [
-      { product: products[0], qty: 1 }, // Nexon Pro Max
-      { product: products[3] || products[1], qty: 1 }, // Loomwear Silk Blend
+      { product: p1, qty: 1 },
+      { product: p2, qty: 1 },
     ];
-  }, [cart]);
+  }, [targetOrder, cart]);
 
   const activeCartCount = activeCartItems.reduce((acc, i) => acc + i.qty, 0);
-  const activeMrpTotal = activeCartItems.reduce((acc, i) => acc + i.qty * i.product.mrp, 0);
+  const activeMrpTotal = activeCartItems.reduce((acc, i) => acc + i.qty * (i.product.mrp || i.product.price), 0);
   const activeSubtotal = activeCartItems.reduce((acc, i) => acc + i.qty * i.product.price, 0);
   const activeGstTotal = activeCartItems.reduce(
     (acc, i) =>
       acc + Math.round((i.product.price * i.qty * (i.product.price <= 1000 ? 5 : 12)) / 100),
-    0,
+    0
   );
-  const activeDeliveryFee = activeSubtotal > 0 && activeSubtotal < 499 ? 40 : 0;
-  const activePriceTotal = activeSubtotal + activeGstTotal + activeDeliveryFee;
-  const activeSavings = activeMrpTotal - activeSubtotal;
+  const activeDeliveryFee = targetOrder ? targetOrder.deliveryCharge : activeSubtotal > 0 && activeSubtotal < 499 ? 40 : 0;
+  const activePriceTotal = targetOrder ? targetOrder.totalAmount : activeSubtotal + activeGstTotal + activeDeliveryFee;
+  const activeSavings = Math.max(0, activeMrpTotal - activeSubtotal);
 
-  // Fallback demo delivery address if user visits /payment directly
-  const activeAddress: DeliveryAddress = React.useMemo(() => {
+  const activeAddress = React.useMemo(() => {
+    if (targetOrder && targetOrder.address) {
+      const a = targetOrder.address;
+      return {
+        fullName: a.name || "Kartly Customer",
+        phone: a.phone || "9876543210",
+        pincode: a.pincode || "560001",
+        addressLine: `${a.house}, ${a.street}`,
+        city: a.city || "Bengaluru",
+        state: a.state || "Karnataka",
+        addressType: (a.type || "home") as "home" | "work",
+      };
+    }
     if (savedAddress && savedAddress.fullName) return savedAddress;
     return {
       fullName: "Rahul Sharma",
@@ -75,16 +124,14 @@ function PaymentPage() {
       addressLine: "Flat 402, Sunshine Apartments, 5th Main, Indiranagar",
       city: "Bengaluru",
       state: "Karnataka",
-      addressType: "home",
+      addressType: "home" as const,
     };
-  }, [savedAddress]);
+  }, [targetOrder, savedAddress]);
 
-  // Payment Method Selection State
-  const [paymentMethod, setPaymentMethod] = React.useState<"UPI" | "Card" | "Net Banking" | "COD">(
-    "UPI",
-  );
-
-  // UPI Sub-Option State: "qr" (QR Code Scanner & Timer) or "id" (Manual VPA)
+  // Selected Payment Method & Tab state
+  const [paymentMethod, setPaymentMethod] = React.useState<
+    "UPI" | "Card" | "NetBanking" | "COD" | "EMI"
+  >("UPI");
   const [upiSubOption, setUpiSubOption] = React.useState<"qr" | "id">("qr");
 
   // 5-Minute (300 Seconds) Countdown Timer State
@@ -106,7 +153,7 @@ function PaymentPage() {
   const [bank, setBank] = React.useState("HDFC");
 
   // Inline Validation Errors
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [errors, setErrors] = React.useState<FormErrors>({});
 
   // Processing & Simulation State
   const [isProcessing, setIsProcessing] = React.useState(false);
@@ -223,7 +270,7 @@ function PaymentPage() {
 
   // Comprehensive Form Validation
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: FormErrors = {};
 
     if (paymentMethod === "UPI") {
       if (upiSubOption === "qr" && isQrExpired) {
@@ -253,7 +300,7 @@ function PaymentPage() {
         newErrors.cardExpiry = "Expiry Date required (MM/YY)";
       } else {
         const parts = cardExpiry.split("/");
-        const month = parseInt(parts[0], 10);
+        const month = parseInt(parts[0] || "0", 10);
         if (parts.length !== 2 || isNaN(month) || month < 1 || month > 12) {
           newErrors.cardExpiry = "Enter valid month (01-12)";
         }
@@ -263,7 +310,7 @@ function PaymentPage() {
       } else if (cardCvv.length < 3) {
         newErrors.cardCvv = "Enter 3-digit CVV";
       }
-    } else if (paymentMethod === "Net Banking") {
+    } else if (paymentMethod === "NetBanking") {
       if (!bank) {
         newErrors.bank = "Please select a bank";
       }
@@ -313,26 +360,51 @@ function PaymentPage() {
         setProcessingStep("Payment Authorized! Generating Order receipt...");
 
         setTimeout(() => {
-          // Add Order to localStorage and clear cart
-          const newOrder = addOrder({
-            items: activeCartItems,
-            totalAmount: activePriceTotal,
-            subtotal: activeSubtotal,
-            gstTotal: activeGstTotal,
-            mrpTotal: activeMrpTotal,
-            savings: activeSavings,
-            deliveryAddress: activeAddress,
-            paymentMethod,
-            paymentStatus: paymentMethod === "COD" ? "PENDING" : "SUCCESS",
-            status: "Ordered",
-          });
+          let finalOrderId = targetOrder?.id;
+
+          if (targetOrder) {
+            // Update order status to PLACED and attach payment info
+            const updatedPayment = {
+              method: paymentMethod === "COD" ? ("cod" as const) : ("upi" as const),
+              providerName: paymentMethod === "UPI" ? (upiApp || "UPI") : paymentMethod === "Card" ? "Credit Card" : paymentMethod === "NetBanking" ? (bank || "Net Banking") : "Payment Gateway",
+              upiId: upiSubOption === "id" ? upiId : undefined,
+              cardNumberMasked: cardNumber ? `•••• ${cardNumber.slice(-4)}` : undefined,
+            };
+
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === targetOrder.id
+                  ? { ...o, status: "PLACED", payment: updatedPayment }
+                  : o
+              )
+            );
+            clearCart();
+            clearBuyNow();
+          } else {
+            const newOrder = placeOrder(
+              {
+                method: paymentMethod === "COD" ? "cod" : "upi",
+                providerName: "Payment Gateway",
+              },
+              "addr-1"
+            );
+            finalOrderId = newOrder?.id;
+          }
+
+          if (finalOrderId) {
+            try {
+              if (typeof window !== "undefined") {
+                window.localStorage.setItem("kartly.lastOrderId", finalOrderId);
+              }
+            } catch {}
+          }
 
           setIsProcessing(false);
           toast.success("Payment Successful!", {
-            description: `Order ${newOrder.id} placed successfully.`,
+            description: `Order ${finalOrderId || "placed"} successfully.`,
           });
           window.scrollTo({ top: 0, behavior: "instant" });
-          navigate({ to: "/success" });
+          navigate({ to: "/order-success", search: { orderId: finalOrderId || undefined } });
         }, 800);
       }
     }, 2400);
@@ -448,292 +520,24 @@ function PaymentPage() {
 
               {/* Input Fields for Selected Method */}
               <form onSubmit={handlePayNow} className="p-5 sm:p-6 space-y-5">
-                {/* ----------------- 1. ENHANCED UPI / QR METHOD WITH SCANNER & 5-MIN TIMER ----------------- */}
+                {/* ----------------- 1. ENHANCED UPI / QR METHOD WITH CIRCULAR APPS, SCANNER & 5-MIN TIMER ----------------- */}
                 {paymentMethod === "UPI" && (
-                  <div className="space-y-5">
-                    <div className="flex items-center justify-between border-b border-border pb-2">
-                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <QrCode className="size-4 text-brand" /> Pay via UPI or Scan QR Code
-                      </h3>
-                      <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Instant & 100% Free
-                      </span>
-                    </div>
-
-                    {/* Sub-Option Selector: QR Scanner vs Enter UPI ID */}
-                    <div className="grid grid-cols-2 gap-2 bg-muted/40 p-1.5 rounded-md border border-border">
-                      <button
-                        type="button"
-                        onClick={() => setUpiSubOption("qr")}
-                        className={`py-2 px-3 rounded text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                          upiSubOption === "qr"
-                            ? "bg-card text-brand shadow-sm font-extrabold border border-border"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <QrCode className="size-3.5" /> QR Code Scanner View
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setUpiSubOption("id")}
-                        className={`py-2 px-3 rounded text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                          upiSubOption === "id"
-                            ? "bg-card text-brand shadow-sm font-extrabold border border-border"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <Smartphone className="size-3.5" /> Enter UPI ID Manually
-                      </button>
-                    </div>
-
-                    {/* SUB-OPTION A: REALISTIC QR SCANNER VIEW WITH 5-MIN COUNTDOWN TIMER */}
-                    {upiSubOption === "qr" && (
-                      <div className="space-y-5 text-center">
-                        {/* Scanner Frame Container */}
-                        <div className="relative border-2 border-brand/50 bg-card p-6 rounded-xl max-w-sm mx-auto space-y-4 shadow-lg overflow-hidden">
-                          {/* Top Header Bar inside Scanner View */}
-                          <div className="flex items-center justify-between text-xs border-b border-border pb-2.5">
-                            <span className="font-bold text-foreground flex items-center gap-1">
-                              <ShieldCheck className="size-4 text-emerald-600" /> Kartly Store
-                            </span>
-                            <span className="font-extrabold text-brand text-sm">
-                              {inr(activePriceTotal)}
-                            </span>
-                          </div>
-
-                          {/* 5-Minute Live Countdown Timer Badge */}
-                          <div
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                              isQrExpired
-                                ? "bg-destructive/15 text-destructive border border-destructive/30"
-                                : timeLeft < 60
-                                  ? "bg-amber-100 text-amber-900 border border-amber-300 animate-pulse"
-                                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                            }`}
-                          >
-                            <Clock className="size-3.5" />
-                            {isQrExpired ? (
-                              <span>QR Code Expired</span>
-                            ) : (
-                              <span>Expires in {formatTime(timeLeft)}</span>
-                            )}
-                          </div>
-
-                          {/* Centered QR Code Box with Viewfinder Corners */}
-                          <div className="relative bg-white p-3 rounded-lg border-2 border-border inline-block shadow-inner">
-                            {/* Visual Scanner Overlay Corner Lines */}
-                            <div className="absolute top-1 left-1 size-4 border-t-2 border-l-2 border-brand" />
-                            <div className="absolute top-1 right-1 size-4 border-t-2 border-r-2 border-brand" />
-                            <div className="absolute bottom-1 left-1 size-4 border-b-2 border-l-2 border-brand" />
-                            <div className="absolute bottom-1 right-1 size-4 border-b-2 border-r-2 border-brand" />
-
-                            {isQrExpired ? (
-                              <div className="size-48 bg-muted/80 rounded flex flex-col items-center justify-center p-4 space-y-2 text-center">
-                                <AlertTriangle className="size-10 text-destructive mx-auto" />
-                                <p className="text-xs font-bold text-destructive">
-                                  QR Code Expired
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  Timer reached 00:00
-                                </p>
-                              </div>
-                            ) : (
-                              <img
-                                src={qrImageUrl}
-                                alt="Scan QR Code to Pay via UPI"
-                                width={200}
-                                height={200}
-                                className="size-48 object-contain mx-auto"
-                              />
-                            )}
-                          </div>
-
-                          {/* Scanning Instruction Text */}
-                          <div className="space-y-1">
-                            <p className="text-xs font-bold text-foreground">
-                              Scan this QR using any UPI app to complete payment
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              Supports Google Pay, PhonePe, Paytm, BHIM, CRED & Banking Apps
-                            </p>
-                          </div>
-
-                          {/* VPA Info & Copy */}
-                          <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
-                            <span>VPA: {merchantVpa}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(merchantVpa);
-                                toast.success("Copied Merchant VPA");
-                              }}
-                              className="hover:text-foreground p-0.5 cursor-pointer"
-                              title="Copy VPA"
-                            >
-                              <Copy className="size-3" />
-                            </button>
-                          </div>
-
-                          {/* Refresh QR & Cancel Control Buttons */}
-                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-                            <button
-                              type="button"
-                              onClick={handleRefreshQr}
-                              className="flex-1 bg-muted hover:bg-muted/80 text-foreground py-2 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-border"
-                            >
-                              <RotateCcw className="size-3.5" /> Refresh QR Code
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPaymentMethod("Card");
-                                toast("Switched to Card payment option.");
-                              }}
-                              className="bg-card hover:bg-muted text-muted-foreground hover:text-foreground py-2 px-3 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer border border-border"
-                            >
-                              <X className="size-3.5" /> Cancel / Back
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Pay using Installed UPI App Button */}
-                        <div className="space-y-2 max-w-sm mx-auto">
-                          <button
-                            type="button"
-                            onClick={handlePayViaUpiApp}
-                            disabled={isQrExpired}
-                            className="w-full bg-brand text-primary-foreground py-3 px-4 rounded text-xs font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer shadow disabled:opacity-50"
-                          >
-                            <Smartphone className="size-4" /> Pay using Installed UPI App{" "}
-                            <ExternalLink className="size-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-OPTION B: ENTER UPI ID MANUALLY */}
-                    {upiSubOption === "id" && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-foreground mb-2">
-                            Select Preset App or Enter Custom ID
-                          </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {[
-                              {
-                                id: "gpay",
-                                label: "Google Pay",
-                                color: "bg-blue-50 text-blue-700 border-blue-200",
-                              },
-                              {
-                                id: "phonepe",
-                                label: "PhonePe",
-                                color: "bg-purple-50 text-purple-700 border-purple-200",
-                              },
-                              {
-                                id: "paytm",
-                                label: "Paytm",
-                                color: "bg-sky-50 text-sky-700 border-sky-200",
-                              },
-                              {
-                                id: "custom",
-                                label: "Custom UPI ID",
-                                color: "bg-amber-50 text-amber-700 border-amber-200",
-                              },
-                            ].map((app) => (
-                              <button
-                                key={app.id}
-                                type="button"
-                                onClick={() => handleUpiAppChange(app.id as any)}
-                                className={`p-2.5 rounded border text-xs font-bold transition-all text-center cursor-pointer ${
-                                  upiApp === app.id
-                                    ? `${app.color} ring-2 ring-brand font-extrabold`
-                                    : "border-border text-foreground hover:bg-muted"
-                                }`}
-                              >
-                                {app.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-foreground mb-1">
-                            UPI ID (Virtual Private Address){" "}
-                            <span className="text-destructive">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="name@upi (e.g. 9876543210@okicici)"
-                            value={upiId}
-                            onChange={(e) => {
-                              setUpiId(e.target.value);
-                              if (errors.upiId) setErrors((prev) => ({ ...prev, upiId: "" }));
-                            }}
-                            className={`w-full bg-background border px-3 py-2 text-sm text-foreground outline-none focus:border-brand font-mono ${
-                              errors.upiId ? "border-destructive" : "border-border"
-                            }`}
-                          />
-                          {errors.upiId ? (
-                            <p className="text-[11px] text-destructive mt-1 font-medium">
-                              {errors.upiId}
-                            </p>
-                          ) : (
-                            <p className="text-[11px] text-muted-foreground mt-1">
-                              Example format:{" "}
-                              <code className="bg-muted px-1 rounded">username@upi</code>,{" "}
-                              <code className="bg-muted px-1 rounded">9876543210@ybl</code>
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="bg-muted/40 p-3 rounded border border-border text-xs text-muted-foreground flex items-center gap-2">
-                          <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
-                          <span>
-                            A collect request will be sent to your{" "}
-                            <strong>{upiApp.toUpperCase()}</strong> app.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Simulation Test Toggle */}
-                    <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
-                      <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={simulateFailure}
-                          onChange={(e) => setSimulateFailure(e.target.checked)}
-                          className="accent-destructive"
-                        />
-                        <span className="text-[11px]">
-                          Simulate Test Payment Failure (For testing retry flow)
-                        </span>
-                      </label>
-                    </div>
-
-                    {/* Security Badges */}
-                    <div className="pt-2 flex items-center justify-between border-t border-border text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <Lock className="size-3.5 text-emerald-600" /> 256-Bit SSL Encrypted Gateway
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <ShieldCheck className="size-3.5 text-brand" /> 100% Buyer Protection
-                      </span>
-                    </div>
-
-                    {/* Main Action Button */}
-                    <button
-                      type="submit"
-                      disabled={isProcessing || (upiSubOption === "qr" && isQrExpired)}
-                      className="w-full bg-accent px-4 py-4 text-center text-base font-extrabold text-accent-foreground transition-all hover:opacity-95 shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                    >
-                      {upiSubOption === "qr" ? "I have completed payment" : "Verify & Pay"}{" "}
-                      {inr(activePriceTotal)} <ArrowRight className="size-5" />
-                    </button>
-                  </div>
+                  <UpiPaymentWidget
+                    payableAmount={activePriceTotal}
+                    onPaymentSuccess={(details) => {
+                      const newOrder = placeOrder(
+                        {
+                          method: "upi",
+                          providerName: details.providerName,
+                          upiId: details.upiId,
+                        },
+                        "addr-1"
+                      );
+                      if (newOrder) {
+                        navigate({ to: "/success" });
+                      }
+                    }}
+                  />
                 )}
 
                 {/* ----------------- 2. CARD METHOD ----------------- */}
@@ -855,7 +659,7 @@ function PaymentPage() {
                 )}
 
                 {/* ----------------- 3. NET BANKING METHOD ----------------- */}
-                {paymentMethod === "Net Banking" && (
+                {paymentMethod === "NetBanking" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-border pb-2">
                       <h3 className="text-sm font-bold text-foreground flex items-center gap-2">

@@ -7,17 +7,17 @@ import { StoreProvider } from "@/components/store/store-context";
 import { EnterpriseAuthProvider, useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 import { toast } from "sonner";
 
+import { RequirePortalAuth } from "@/components/auth/RequirePortalAuth";
+
 export const Route = createFileRoute("/warehouse/dashboard")({
   component: WarehouseDashboardRoute,
 });
 
 function WarehouseDashboardRoute() {
   return (
-    <StoreProvider>
-      <EnterpriseAuthProvider>
-        <WarehouseDashboardPage />
-      </EnterpriseAuthProvider>
-    </StoreProvider>
+    <RequirePortalAuth requiredRole="WAREHOUSE">
+      <WarehouseDashboardPage />
+    </RequirePortalAuth>
   );
 }
 

@@ -1,0 +1,839 @@
+{
+  "users": [
+    {
+      "id": "usr-demo",
+      "name": "Kartly Demo User",
+      "email": "demo@kartly.com",
+      "phone": "9999999999",
+      "password": "password123",
+      "rewardPoints": 250
+    },
+    {
+      "id": "usr-1788603154236",
+      "name": "keerthi",
+      "email": "burugulakeerthi7@gmail.com",
+      "phone": "9658741230",
+      "password": "password123",
+      "role": "CUSTOMER",
+      "createdAt": "2026-09-05T10:12:34.236Z",
+      "address": "qwerty"
+    },
+    {
+      "id": "usr-1788603261571",
+      "name": "janu",
+      "email": "janu0@gmail.com",
+      "phone": "6325987410",
+      "password": "password123",
+      "role": "SELLER",
+      "createdAt": "2026-09-05T10:14:21.571Z",
+      "shopName": "apple",
+      "businessType": "Retailer"
+    },
+    {
+      "id": "usr-1788758052184",
+      "name": "Keerthi Burugula",
+      "email": "burugulakeert@gmail.com",
+      "phone": "1234567890",
+      "password": "love",
+      "role": "ADMIN",
+      "createdAt": "2026-09-07T05:14:12.184Z",
+      "employeeId": "fghj,"
+    }
+  ],
+  "products": [
+    {
+      "id": "nexon-note-5g",
+      "image": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80",
+      "brand": "Nexon",
+      "title": "Nexon Note 12 5G, 8GB RAM, 128GB, 50MP AI Camera",
+      "price": 13499,
+      "mrp": 18999,
+      "rating": 4.3,
+      "reviews": "76,431",
+      "category": "Mobiles",
+      "subCategory": "Smartphones"
+    },
+    {
+      "id": "nexon-pro-max",
+      "image": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=600&q=80",
+      "brand": "Nexon",
+      "title": "Nexon Pro Max Flagship 5G, 12GB RAM, 256GB Storage",
+      "price": 39999,
+      "mrp": 49999,
+      "rating": 4.6,
+      "reviews": "1,12,040",
+      "category": "Mobiles",
+      "subCategory": "Smartphones"
+    },
+    {
+      "id": "bolt-speed-5g",
+      "image": "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=600&q=80",
+      "brand": "Bolt",
+      "title": "Bolt Speed 5G, 6GB RAM, 128GB, 5000mAh Battery",
+      "price": 10999,
+      "mrp": 14999,
+      "rating": 4.2,
+      "reviews": "45,892",
+      "category": "Mobiles",
+      "subCategory": "Budget Phones"
+    },
+    {
+      "id": "apex-edge-ultra",
+      "image": "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=600&q=80",
+      "brand": "Apex",
+      "title": "Apex Edge Ultra 5G, 16GB RAM, 512GB, Snapdragon 8 Gen 3",
+      "price": 64999,
+      "mrp": 79999,
+      "rating": 4.8,
+      "reviews": "28,410",
+      "category": "Mobiles",
+      "subCategory": "Flagship Phones"
+    },
+    {
+      "id": "nexon-air-14",
+      "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=600&q=80",
+      "brand": "Nexon",
+      "title": "Nexon Air 14 Thin & Light Laptop, 16GB RAM, 512GB SSD",
+      "price": 54990,
+      "mrp": 72990,
+      "rating": 4.4,
+      "reviews": "12,480",
+      "category": "Electronics",
+      "subCategory": "Laptops"
+    },
+    {
+      "id": "pulseform-active-2",
+      "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
+      "brand": "Pulseform",
+      "title": "Pulseform Active 2 Smartwatch with AMOLED Display",
+      "price": 2199,
+      "mrp": 5999,
+      "rating": 4.2,
+      "reviews": "38,102",
+      "category": "Electronics",
+      "subCategory": "Accessories"
+    },
+    {
+      "id": "pulseform-buds",
+      "image": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80",
+      "brand": "Pulseform",
+      "title": "Pulseform Beat 40 Wireless Earbuds, 40h Playback",
+      "price": 1099,
+      "mrp": 3499,
+      "rating": 4.2,
+      "reviews": "52,908",
+      "category": "Electronics",
+      "subCategory": "Audio Devices"
+    },
+    {
+      "id": "nexon-4k-tv",
+      "image": "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=600&q=80",
+      "brand": "Nexon",
+      "title": "Nexon 55-inch Ultra HD 4K Smart LED TV with Dolby Audio",
+      "price": 32999,
+      "mrp": 45999,
+      "rating": 4.5,
+      "reviews": "14,320",
+      "category": "Electronics",
+      "subCategory": "Televisions"
+    },
+    {
+      "id": "loomwear-tee-3",
+      "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80",
+      "brand": "Loomwear",
+      "title": "Loomwear Men Pure Cotton Regular Fit T-Shirt (Pack of 3)",
+      "price": 799,
+      "mrp": 1999,
+      "rating": 4.1,
+      "reviews": "18,920",
+      "category": "Fashion",
+      "subCategory": "Men"
+    },
+    {
+      "id": "loomwear-jeans",
+      "image": "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=600&q=80",
+      "brand": "Loomwear",
+      "title": "Loomwear Slim Fit Stretchable Casual Blue Jeans",
+      "price": 1299,
+      "mrp": 2799,
+      "rating": 4.3,
+      "reviews": "14,810",
+      "category": "Fashion",
+      "subCategory": "Men"
+    },
+    {
+      "id": "loomwear-women-dress",
+      "image": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80",
+      "brand": "Zara Fit",
+      "title": "Zara Fit Floral A-Line Midi Dress for Women",
+      "price": 1499,
+      "mrp": 2999,
+      "rating": 4.5,
+      "reviews": "9,420",
+      "category": "Fashion",
+      "subCategory": "Women"
+    },
+    {
+      "id": "loomwear-kids-set",
+      "image": "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=600&q=80",
+      "brand": "Kids Club",
+      "title": "Kids Club Printed Cotton T-Shirt & Shorts Set",
+      "price": 599,
+      "mrp": 1299,
+      "rating": 4.4,
+      "reviews": "6,310",
+      "category": "Fashion",
+      "subCategory": "Kids"
+    },
+    {
+      "id": "pureglow-serum",
+      "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80",
+      "brand": "PureGlow",
+      "title": "PureGlow Vitamin C Face Serum for Radiant Skin, 30ml",
+      "price": 499,
+      "mrp": 899,
+      "rating": 4.4,
+      "reviews": "21,430",
+      "category": "Beauty",
+      "subCategory": "Skincare"
+    },
+    {
+      "id": "pureglow-lipstick",
+      "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=600&q=80",
+      "brand": "Velvet Luxe",
+      "title": "Velvet Luxe Matte Liquid Lipstick — Rose Crimson",
+      "price": 349,
+      "mrp": 699,
+      "rating": 4.3,
+      "reviews": "15,820",
+      "category": "Beauty",
+      "subCategory": "Makeup"
+    },
+    {
+      "id": "homestyle-sofa",
+      "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80",
+      "brand": "HomeStyle",
+      "title": "HomeStyle Premium 3-Seater Velvet Fabric Sofa Set",
+      "price": 18999,
+      "mrp": 29999,
+      "rating": 4.6,
+      "reviews": "4,820",
+      "category": "Home",
+      "subCategory": "Furniture"
+    },
+    {
+      "id": "homestyle-lamp",
+      "image": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=600&q=80",
+      "brand": "Lumina",
+      "title": "Lumina Modern Minimalist Standing Floor Lamp",
+      "price": 1899,
+      "mrp": 3499,
+      "rating": 4.5,
+      "reviews": "8,910",
+      "category": "Home",
+      "subCategory": "Lighting"
+    },
+    {
+      "id": "frostline-fridge",
+      "image": "https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=600&q=80",
+      "brand": "FrostLine",
+      "title": "FrostLine 260L Double Door Convertible Refrigerator",
+      "price": 24990,
+      "mrp": 32990,
+      "rating": 4.5,
+      "reviews": "11,240",
+      "category": "Appliances",
+      "subCategory": "Refrigerators"
+    },
+    {
+      "id": "voltwave-airfryer",
+      "image": "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=600&q=80",
+      "brand": "VoltWave",
+      "title": "VoltWave Digital Air Fryer 4.5L with 8 Preset Menus",
+      "price": 3999,
+      "mrp": 7999,
+      "rating": 4.6,
+      "reviews": "19,830",
+      "category": "Appliances",
+      "subCategory": "Small Appliances"
+    },
+    {
+      "id": "organica-oats",
+      "image": "https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&w=600&q=80",
+      "brand": "Organica",
+      "title": "Organica 100% Rolled Whole Grain Oats, 1kg Pack",
+      "price": 199,
+      "mrp": 299,
+      "rating": 4.7,
+      "reviews": "34,910",
+      "category": "Grocery",
+      "subCategory": "Breakfast"
+    },
+    {
+      "id": "fitpulse-mat",
+      "image": "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&w=600&q=80",
+      "brand": "FitPulse",
+      "title": "FitPulse Non-Slip TPE Yoga Mat 6mm with Carry Strap",
+      "price": 699,
+      "mrp": 1499,
+      "rating": 4.5,
+      "reviews": "16,420",
+      "category": "Sports",
+      "subCategory": "Fitness"
+    },
+    {
+      "id": "inkline-atomic",
+      "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80",
+      "brand": "Inkline",
+      "title": "Inkline Everyday Habits — Paperback Bestseller",
+      "price": 349,
+      "mrp": 599,
+      "rating": 4.6,
+      "reviews": "1,02,884",
+      "category": "Books",
+      "subCategory": "Non-Fiction"
+    }
+  ],
+  "cart": [],
+  "wishlist": [
+    {
+      "userId": "usr-demo",
+      "productId": "samsung-galaxy-s24"
+    }
+  ],
+  "addresses": [
+    {
+      "id": "addr-1",
+      "userId": "usr-demo",
+      "name": "Kartly Demo User",
+      "phone": "9999999999",
+      "house": "Flat 402, Sai Vardhini Heights",
+      "street": "Road No. 12, Banjara Hills",
+      "city": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500034",
+      "type": "home",
+      "isDefault": true
+    },
+    {
+      "id": "addr-2",
+      "userId": "usr-demo",
+      "name": "Kartly Demo User",
+      "phone": "9999999999",
+      "house": "Building 5B, Mindspace IT Park",
+      "street": "HITEC City",
+      "city": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500081",
+      "type": "work",
+      "isDefault": false
+    }
+  ],
+  "orders": [
+    {
+      "id": "KARTLY-20260907-15932",
+      "order_id": "KARTLY-20260907-15932",
+      "userId": "usr-1788603154236",
+      "user_id": "usr-1788603154236",
+      "date": "07 Sept 2026",
+      "created_at": "2026-09-07T06:27:33.203Z",
+      "order_status": "PLACED",
+      "status": "PLACED",
+      "payment_status": "SUCCESS",
+      "expectedDelivery": "10 Sept 2026",
+      "items": [
+        {
+          "product": {
+            "id": "loomwear-kurta",
+            "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80",
+            "brand": "Loomwear",
+            "title": "Loomwear Handloom Cotton Straight Kurta for Women",
+            "price": 899,
+            "mrp": 2499,
+            "rating": 4.2,
+            "reviews": "6,018",
+            "category": "Fashion",
+            "fashionCategory": "women",
+            "subCategory": "ethnic",
+            "color": "Green",
+            "sizes": [
+              "M",
+              "L",
+              "XL"
+            ]
+          },
+          "qty": 1
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "userId": "usr-demo",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home",
+        "isDefault": true
+      },
+      "payment": {
+        "method": "upi",
+        "status": "SUCCESS",
+        "details": {
+          "method": "upi",
+          "providerName": "PhonePe",
+          "upiId": "phonepe@ybl"
+        }
+      },
+      "subtotal": 899,
+      "mrpTotal": 2499,
+      "discount": 1600,
+      "gst_amount": 0,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 899,
+      "final_amount": 899,
+      "timeline": [
+        {
+          "status": "Placed",
+          "date": "07 Sept 2026",
+          "time": "11:57 am",
+          "completed": true
+        },
+        {
+          "status": "Confirmed",
+          "date": "07 Sept 2026",
+          "time": "11:57 am",
+          "completed": true
+        },
+        {
+          "status": "Shipped",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Out for Delivery",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Delivered",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "KARTLY-20260907-27198",
+      "order_id": "KARTLY-20260907-27198",
+      "userId": "usr-demo",
+      "user_id": "usr-demo",
+      "date": "07 Sept 2026",
+      "created_at": "2026-09-07T05:11:11.557Z",
+      "order_status": "PLACED",
+      "status": "PLACED",
+      "payment_status": "SUCCESS",
+      "expectedDelivery": "10 Sept 2026",
+      "items": [
+        {
+          "product": {
+            "id": "loomwear-women-dress",
+            "image": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80",
+            "brand": "Zara",
+            "title": "Zara Printed Cotton A-Line Maxi Dress for Women",
+            "price": 1199,
+            "mrp": 2799,
+            "rating": 4.5,
+            "reviews": "11,402",
+            "category": "Fashion",
+            "fashionCategory": "women",
+            "subCategory": "western",
+            "color": "Red",
+            "sizes": [
+              "S",
+              "M",
+              "L"
+            ]
+          },
+          "qty": 1
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "userId": "usr-demo",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home",
+        "isDefault": true
+      },
+      "payment": {
+        "method": "upi",
+        "status": "SUCCESS",
+        "details": {
+          "method": "upi",
+          "providerName": "PhonePe",
+          "upiId": "demo@ybl",
+          "cardNumberMasked": "•••• 4242",
+          "emiTenureMonths": 3,
+          "emiMonthlyAmount": 451
+        }
+      },
+      "subtotal": 1199,
+      "mrpTotal": 2799,
+      "discount": 1600,
+      "gst_amount": 0,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 1199,
+      "final_amount": 1199,
+      "timeline": [
+        {
+          "status": "Placed",
+          "date": "07 Sept 2026",
+          "time": "10:41 am",
+          "completed": true
+        },
+        {
+          "status": "Confirmed",
+          "date": "07 Sept 2026",
+          "time": "10:41 am",
+          "completed": true
+        },
+        {
+          "status": "Shipped",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Out for Delivery",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Delivered",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "KARTLY-20260907-32129",
+      "order_id": "KARTLY-20260907-32129",
+      "userId": "usr-demo",
+      "user_id": "usr-demo",
+      "date": "07 Sept 2026",
+      "created_at": "2026-09-07T05:08:31.937Z",
+      "order_status": "PLACED",
+      "status": "PLACED",
+      "payment_status": "PENDING",
+      "expectedDelivery": "10 Sept 2026",
+      "items": [
+        {
+          "product": {
+            "id": "samsung-galaxy-s24",
+            "image": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=600&q=80",
+            "brand": "Samsung",
+            "title": "Samsung Galaxy S24 Ultra 5G (12GB RAM, 256GB Storage)",
+            "price": 119999,
+            "mrp": 134999,
+            "rating": 4.8,
+            "reviews": "62,100",
+            "category": "Mobiles",
+            "mobileType": "flagship",
+            "subCategory": "flagship",
+            "variants": [
+              {
+                "color": "Titanium Gray",
+                "colorHex": "#64748b",
+                "images": [
+                  "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80",
+                  "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80"
+                ],
+                "priceOffset": 0,
+                "inStock": true
+              },
+              {
+                "color": "Onyx Black",
+                "colorHex": "#18181b",
+                "images": [
+                  "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80",
+                  "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80"
+                ],
+                "priceOffset": 0,
+                "inStock": true
+              },
+              {
+                "color": "Amber Yellow",
+                "colorHex": "#f59e0b",
+                "images": [
+                  "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80",
+                  "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80"
+                ],
+                "priceOffset": 1500,
+                "inStock": true
+              }
+            ]
+          },
+          "qty": 1
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "userId": "usr-demo",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home",
+        "isDefault": true
+      },
+      "payment": {
+        "method": "cod",
+        "status": "PENDING",
+        "details": {
+          "method": "cod",
+          "providerName": "Cash on Delivery",
+          "upiId": "demo@ybl",
+          "cardNumberMasked": "•••• 4242",
+          "emiTenureMonths": 3,
+          "emiMonthlyAmount": 47203
+        }
+      },
+      "subtotal": 119999,
+      "mrpTotal": 134999,
+      "discount": 15000,
+      "gst_amount": 0,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 119999,
+      "final_amount": 119999,
+      "timeline": [
+        {
+          "status": "Placed",
+          "date": "07 Sept 2026",
+          "time": "10:38 am",
+          "completed": true
+        },
+        {
+          "status": "Confirmed",
+          "date": "07 Sept 2026",
+          "time": "10:38 am",
+          "completed": true
+        },
+        {
+          "status": "Shipped",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Out for Delivery",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Delivered",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "KARTLY-20260905-95858",
+      "order_id": "KARTLY-20260905-95858",
+      "userId": "usr-demo",
+      "user_id": "usr-demo",
+      "date": "05 Sept 2026",
+      "created_at": "2026-09-05T11:25:15.097Z",
+      "order_status": "PLACED",
+      "status": "PLACED",
+      "payment_status": "PENDING",
+      "expectedDelivery": "08 Sept 2026",
+      "items": [
+        {
+          "product": {
+            "id": "nothing-phone-2a",
+            "image": "https://images.unsplash.com/photo-1546054454-aa26e2b734c7?auto=format&fit=crop&w=600&q=80",
+            "brand": "Nothing",
+            "title": "Nothing Phone (2a) 5G with Glyph Interface, 128GB",
+            "price": 23999,
+            "mrp": 27999,
+            "rating": 4.5,
+            "reviews": "21,450",
+            "category": "Mobiles",
+            "mobileType": "trending",
+            "subCategory": "trending"
+          },
+          "qty": 1
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "userId": "usr-demo",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home",
+        "isDefault": true
+      },
+      "payment": {
+        "method": "cod",
+        "status": "PENDING",
+        "details": {
+          "method": "cod",
+          "providerName": "Cash on Delivery",
+          "upiId": "demo@ybl",
+          "cardNumberMasked": "•••• 4242",
+          "emiTenureMonths": 3,
+          "emiMonthlyAmount": 9110
+        }
+      },
+      "subtotal": 23999,
+      "mrpTotal": 27999,
+      "discount": 4000,
+      "gst_amount": 0,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 22999,
+      "final_amount": 22999,
+      "timeline": [
+        {
+          "status": "Placed",
+          "date": "05 Sept 2026",
+          "time": "04:55 pm",
+          "completed": true
+        },
+        {
+          "status": "Confirmed",
+          "date": "05 Sept 2026",
+          "time": "04:55 pm",
+          "completed": true
+        },
+        {
+          "status": "Shipped",
+          "date": "08 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Out for Delivery",
+          "date": "08 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "Delivered",
+          "date": "08 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "OD982410491",
+      "order_id": "OD982410491",
+      "userId": "usr-demo",
+      "date": "12 Aug 2026",
+      "created_at": "2026-09-04T06:17:35.859Z",
+      "order_status": "OUT_FOR_DELIVERY",
+      "payment_status": "SUCCESS",
+      "expectedDelivery": "15 Aug 2026",
+      "subtotal": 13499,
+      "discount": 5500,
+      "gst_amount": 2429,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 13499,
+      "final_amount": 15938,
+      "items": [
+        {
+          "product": {
+            "id": "nexon-note-5g",
+            "image": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80",
+            "brand": "Nexon",
+            "title": "Nexon Note 12 5G, 8GB RAM, 128GB, 50MP AI Camera",
+            "price": 13499,
+            "mrp": 18999,
+            "rating": 4.3,
+            "reviews": "76,431",
+            "category": "Mobiles",
+            "subCategory": "Smartphones"
+          },
+          "qty": 1,
+          "priceAtPurchase": 13499
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home"
+      },
+      "payment": {
+        "method": "upi",
+        "providerName": "PhonePe",
+        "upiId": "demo@ybl",
+        "status": "SUCCESS"
+      },
+      "timeline": [
+        {
+          "status": "Placed",
+          "date": "12 Aug 2026",
+          "time": "10:30 AM",
+          "completed": true
+        },
+        {
+          "status": "Confirmed",
+          "date": "12 Aug 2026",
+          "time": "11:00 AM",
+          "completed": true
+        },
+        {
+          "status": "Shipped",
+          "date": "13 Aug 2026",
+          "time": "09:00 AM",
+          "completed": true
+        },
+        {
+          "status": "Out for Delivery",
+          "date": "13 Aug 2026",
+          "time": "02:30 PM",
+          "completed": true
+        },
+        {
+          "status": "Delivered",
+          "date": "15 Aug 2026",
+          "time": "Pending",
+          "completed": false
+        }
+      ]
+    }
+  ]
+}

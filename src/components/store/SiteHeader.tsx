@@ -14,7 +14,7 @@ import {
   Package,
   MapPinCheck,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -27,8 +27,10 @@ import { categories } from "./catalog";
 import { AuthDialog } from "./AuthDialog";
 import { CameraSearchDialog } from "./CameraSearchDialog";
 import { useStore } from "./store-context";
+import { useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 
 export function SiteHeader() {
+  const { user: entUser, logout: entLogout, isAuthenticated: entAuth } = useEnterpriseAuth();
   const {
     query,
     setQuery,
@@ -44,6 +46,31 @@ export function SiteHeader() {
     wishlist,
     orders,
   } = useStore();
+
+  const location = useLocation();
+
+  const activeCategory = React.useMemo(() => {
+    const path = (location.pathname || "").toLowerCase();
+    if (path === "/" || path === "/for-you") return "For You";
+    if (path.startsWith("/fashion")) return "Fashion";
+    if (path.startsWith("/mobiles")) return "Mobiles";
+    if (path.startsWith("/electronics")) return "Electronics";
+    if (path.startsWith("/beauty")) return "Beauty";
+    if (path.startsWith("/home")) return "Home";
+    if (path.startsWith("/appliances")) return "Appliances";
+    if (path.startsWith("/toys-gifts") || path.startsWith("/toys")) return "Toys & Gifts";
+    if (path.startsWith("/grocery")) return "Grocery";
+    if (path.startsWith("/sports")) return "Sports";
+    if (path.startsWith("/books")) return "Books";
+
+    if (path.startsWith("/category/")) {
+      const rawCat = decodeURIComponent(location.pathname.replace(/^\/category\//i, ""));
+      const match = categories.find((c) => c.toLowerCase() === rawCat.toLowerCase());
+      if (match) return match;
+    }
+
+    return category || "For You";
+  }, [location.pathname]);
 
   const [cameraOpen, setCameraOpen] = React.useState(false);
   const [draft, setDraft] = React.useState(query);
@@ -177,7 +204,50 @@ export function SiteHeader() {
           </form>
 
           <nav className="flex items-center gap-5 text-sm font-medium">
-            {user && user.isAuth ? (
+            {entAuth && entUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 transition-colors hover:bg-brand-deep cursor-pointer">
+                  <UserRound className="size-4" />
+                  <span className="max-w-[120px] truncate">{entUser.name}</span>
+                  <span className="text-[10px] bg-accent/30 text-accent font-extrabold px-1.5 py-0.5 rounded uppercase">
+                    {entUser.role}
+                  </span>
+                  <ChevronDown className="size-3.5 opacity-70" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to={`/${entUser.role.toLowerCase().replace("_", "-")}/dashboard` as any} className="flex items-center gap-2 cursor-pointer w-full font-bold text-brand">
+                      <Store className="size-4 text-brand" />
+                      <span>{entUser.role.replace("_", " ")} Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/orders" className="flex items-center gap-2 cursor-pointer w-full">
+                      <Package className="size-4 text-brand" />
+                      <span>My Orders ({orders.length})</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/wishlist" className="flex items-center gap-2 cursor-pointer w-full">
+                      <Heart className="size-4 text-brand" />
+                      <span>Wishlist ({wishlist.length})</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      entLogout();
+                      signOut();
+                    }}
+                    className="cursor-pointer text-red-600 dark:text-red-400 font-bold"
+                  >
+                    <LogOut className="size-4" />
+                    <span>Logout Session</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : user && user.isAuth ? (
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 transition-colors hover:bg-brand-deep cursor-pointer">
                   <UserRound className="size-4" />
@@ -281,6 +351,20 @@ export function SiteHeader() {
             </Link>
 
             <Link
+              to="/orders"
+              className="relative flex items-center gap-1.5 transition-opacity hover:opacity-80 cursor-pointer"
+              title="View My Orders"
+            >
+              <Package className="size-4" />
+              <span className="hidden sm:inline">My Orders</span>
+              {orders.length > 0 && (
+                <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-accent-foreground text-center">
+                  {orders.length}
+                </span>
+              )}
+            </Link>
+
+            <Link
               to="/wishlist"
               className="relative flex items-center gap-1.5 transition-opacity hover:opacity-80 cursor-pointer"
               title="View Wishlist"
@@ -326,7 +410,7 @@ export function SiteHeader() {
       <div className="border-b border-border bg-card">
         <ul className="mx-auto flex max-w-[1400px] gap-1 overflow-x-auto px-4 text-sm font-medium text-foreground/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categories.map((c) => {
-            const isSelected = category === c;
+            const isSelected = activeCategory.toLowerCase() === c.toLowerCase();
             const targetPath =
               c === "For You"
                 ? "/"
@@ -361,8 +445,8 @@ export function SiteHeader() {
                   className={
                     "inline-block whitespace-nowrap border-b-2 px-3.5 py-3 transition-colors cursor-pointer " +
                     (isSelected
-                      ? "border-brand font-bold text-brand"
-                      : "border-transparent hover:border-accent hover:text-foreground")
+                      ? "border-b-[3px] border-foreground font-black text-foreground"
+                      : "border-transparent text-muted-foreground hover:border-border hover:text-foreground")
                   }
                 >
                   {c}

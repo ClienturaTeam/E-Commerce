@@ -8,17 +8,17 @@ import { EnterpriseAuthProvider, useEnterpriseAuth } from "@/components/auth/ent
 import { products, inr } from "@/components/store/catalog";
 import { toast } from "sonner";
 
+import { RequirePortalAuth } from "@/components/auth/RequirePortalAuth";
+
 export const Route = createFileRoute("/seller/dashboard")({
   component: SellerDashboardRoute,
 });
 
 function SellerDashboardRoute() {
   return (
-    <StoreProvider>
-      <EnterpriseAuthProvider>
-        <SellerDashboardPage />
-      </EnterpriseAuthProvider>
-    </StoreProvider>
+    <RequirePortalAuth requiredRole="SELLER">
+      <SellerDashboardPage />
+    </RequirePortalAuth>
   );
 }
 

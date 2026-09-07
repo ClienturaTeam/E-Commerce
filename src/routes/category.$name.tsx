@@ -263,7 +263,7 @@ function CategoryPage() {
         filterState.selectedBrands.length === 0 ||
         (p.brand && filterState.selectedBrands.includes(p.brand));
 
-      const matchAssured = !filterState.onlyAssured || Boolean(p.isAssured);
+      const matchAssured = !filterState.onlyAssured || Boolean((p as any).isAssured);
       const matchRating = filterState.minRating === 0 || p.rating >= filterState.minRating;
 
       const off = Math.round(((p.mrp - p.price) / p.mrp) * 100);
@@ -441,7 +441,7 @@ function CategoryPage() {
                   <ProductCard
                     key={p.id}
                     product={p}
-                    badgeLabel={p.subCategory?.toUpperCase()}
+                    badgeLabel={p.subCategory ? p.subCategory.toUpperCase() : undefined}
                   />
                 ))}
               </div>

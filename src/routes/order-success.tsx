@@ -9,6 +9,9 @@ import { StoreProvider, useStore } from "@/components/store/store-context";
 import { inr } from "@/components/store/catalog";
 
 export const Route = createFileRoute("/order-success")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    orderId: (search.orderId as string) || undefined,
+  }),
   component: OrderSuccessRoute,
 });
 
@@ -23,16 +26,55 @@ function OrderSuccessRoute() {
 }
 
 function OrderSuccessPage() {
-  const { savedAddress, buyNowProduct, cart, clearCart, setBuyNowProduct } = useStore();
-  const orderId = React.useMemo(() => "ORD-" + Math.floor(100000 + Math.random() * 900000), []);
-  const orderItems = React.useMemo(() => (buyNowProduct ? [buyNowProduct] : cart), [buyNowProduct, cart]);
-  const subtotal = React.useMemo(() => orderItems.reduce((n, l) => n + l.qty * l.product.price, 0), [orderItems]);
+  const { orders, savedAddress, buyNowProduct, cart, clearCart, setBuyNowProduct } = useStore();
+  const search = Route.useSearch();
 
-  // Clean up order state on mount
+  const orderIdFromParam = React.useMemo(() => {
+    if (search.orderId) return search.orderId;
+    try {
+      if (typeof window !== "undefined") {
+        return window.localStorage.getItem("kartly.lastOrderId");
+      }
+    } catch {}
+    return null;
+  }, [search.orderId]);
+
+  const currentOrder = React.useMemo(() => {
+    if (orderIdFromParam) {
+      const found = orders.find((o) => o.id === orderIdFromParam);
+      if (found) return found;
+    }
+    return orders.length > 0 ? orders[0] : null;
+  }, [orderIdFromParam, orders]);
+
+  const displayOrderId = currentOrder?.id || orderIdFromParam || "KARTLY-ORD-849201";
+
+  const orderItems = React.useMemo(() => {
+    if (currentOrder && currentOrder.items && currentOrder.items.length > 0) {
+      return currentOrder.items;
+    }
+    if (buyNowProduct) return [buyNowProduct];
+    if (cart && cart.length > 0) return cart;
+    return [];
+  }, [currentOrder, buyNowProduct, cart]);
+
+  const totalPaid = currentOrder?.totalAmount || orderItems.reduce((n, l) => n + l.qty * l.product.price, 0);
+
+  const addr = currentOrder?.address;
+  const addressName = addr?.name || savedAddress?.fullName || "Valued Customer";
+  const addressLine = addr ? `${addr.house}, ${addr.street}` : savedAddress?.addressLine || "123 Main Street, Sector 4";
+  const addressCityState = addr
+    ? `${addr.city}, ${addr.state} - ${addr.pincode}`
+    : `${savedAddress?.city || "Bengaluru"}, ${savedAddress?.state || "Karnataka"} - ${savedAddress?.pincode || "560001"}`;
+  const addressPhone = addr?.phone || savedAddress?.phone || "+91 9876543210";
+
+  // Clean up order transient state on mount
   React.useEffect(() => {
     setBuyNowProduct(null);
     try {
-      window.localStorage.removeItem("buyNowProduct");
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("buyNowProduct");
+      }
     } catch {}
   }, [setBuyNowProduct]);
 
@@ -53,7 +95,7 @@ function OrderSuccessPage() {
             Thank You For Your Order!
           </h1>
           <p className="text-sm text-muted-foreground font-medium max-w-md mx-auto">
-            Order <span className="font-bold text-foreground font-mono">{orderId}</span> has been confirmed and is being processed for express delivery.
+            Order <span className="font-bold text-foreground font-mono">{displayOrderId}</span> has been confirmed and is being processed for express delivery.
           </p>
         </div>
 
@@ -65,10 +107,10 @@ function OrderSuccessPage() {
               <Truck className="size-4 text-emerald-600" /> Delivery Address
             </h2>
             <div className="space-y-1 text-xs font-semibold text-foreground bg-muted/50 p-4 rounded-2xl border border-border/60">
-              <p className="font-bold text-sm text-foreground">{savedAddress?.fullName || "Valued Customer"}</p>
-              <p>{savedAddress?.addressLine || "123 Main Street, Sector 4"}</p>
-              <p>{savedAddress?.city || "Bengaluru"}, {savedAddress?.state || "Karnataka"} - {savedAddress?.pincode || "560001"}</p>
-              <p className="text-muted-foreground pt-1">Phone: {savedAddress?.phone || "+91 9876543210"}</p>
+              <p className="font-bold text-sm text-foreground">{addressName}</p>
+              <p>{addressLine}</p>
+              <p>{addressCityState}</p>
+              <p className="text-muted-foreground pt-1">Phone: {addressPhone}</p>
             </div>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
               <PackageCheck className="size-4 shrink-0" />
@@ -79,28 +121,32 @@ function OrderSuccessPage() {
           {/* Right: Ordered Products */}
           <div className="space-y-4">
             <h2 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <ShoppingBag className="size-4 text-pink-600" /> Order Items ({orderItems.length})
+              <ShoppingBag className="size-4 text-brand" /> Order Items ({orderItems.length})
             </h2>
             <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-              {orderItems.map((line) => (
-                <div key={line.product.id} className="flex items-center gap-3 p-2 bg-muted/30 rounded-xl border border-border/40">
-                  <img
-                    src={line.product.image}
-                    alt={line.product.title}
-                    className="size-12 object-cover rounded-lg border border-border bg-white"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{line.product.title}</p>
-                    <p className="text-[11px] text-muted-foreground">Qty: {line.qty} × {inr(line.product.price)}</p>
+              {orderItems.length > 0 ? (
+                orderItems.map((line, idx) => (
+                  <div key={line.product?.id || idx} className="flex items-center gap-3 p-2 bg-muted/30 rounded-xl border border-border/40">
+                    <img
+                      src={line.product?.image || "https://picsum.photos/100"}
+                      alt={line.product?.title || "Product"}
+                      className="size-12 object-cover rounded-lg border border-border bg-white"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">{line.product?.title || "Purchased Product"}</p>
+                      <p className="text-[11px] text-muted-foreground">Qty: {line.qty} × {inr(line.product?.price || 0)}</p>
+                    </div>
+                    <span className="text-xs font-black text-foreground">{inr(line.qty * (line.product?.price || 0))}</span>
                   </div>
-                  <span className="text-xs font-black text-foreground">{inr(line.qty * line.product.price)}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Order confirmed. Item details recorded.</p>
+              )}
             </div>
 
             <div className="pt-3 border-t border-border flex justify-between items-center text-sm font-black">
               <span>Total Paid:</span>
-              <span className="text-emerald-600 text-lg">{inr(subtotal > 0 ? subtotal : 999)}</span>
+              <span className="text-emerald-600 text-lg">{inr(totalPaid > 0 ? totalPaid : 999)}</span>
             </div>
           </div>
         </div>
@@ -110,13 +156,13 @@ function OrderSuccessPage() {
           <Link
             to="/"
             onClick={() => clearCart()}
-            className="px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-black text-xs uppercase rounded-xl shadow-md transition-transform hover:scale-105 cursor-pointer flex items-center gap-2"
+            className="px-6 py-3 bg-brand hover:bg-brand-deep text-primary-foreground font-black text-xs uppercase rounded-xl shadow-md transition-transform hover:scale-105 cursor-pointer flex items-center gap-2"
           >
             <Home className="size-4" /> Return to Store
           </Link>
           <Link
             to="/customer/dashboard"
-            className="px-6 py-3 bg-card border border-border hover:border-pink-600 text-foreground font-bold text-xs uppercase rounded-xl transition-colors cursor-pointer"
+            className="px-6 py-3 bg-card border border-border hover:border-brand text-foreground font-bold text-xs uppercase rounded-xl transition-colors cursor-pointer"
           >
             View Order History
           </Link>

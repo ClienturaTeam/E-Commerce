@@ -23,13 +23,7 @@ export const Route = createFileRoute("/portals")({
 });
 
 function PortalsRoute() {
-  return (
-    <StoreProvider>
-      <EnterpriseAuthProvider>
-        <PortalsPage />
-      </EnterpriseAuthProvider>
-    </StoreProvider>
-  );
+  return <PortalsPage />;
 }
 
 function PortalsPage() {

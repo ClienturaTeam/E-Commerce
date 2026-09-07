@@ -5,6 +5,14 @@ import pWatch from "@/assets/p-watch.jpg";
 import pBeauty from "@/assets/p-beauty.jpg";
 import pShoes from "@/assets/p-shoes.jpg";
 
+export type ProductVariant = {
+  color: string;
+  colorHex?: string;
+  images: string[];
+  priceOffset?: number;
+  inStock?: boolean;
+};
+
 export type Product = {
   id: string;
   image: string;
@@ -19,6 +27,7 @@ export type Product = {
   subCategory?: string;
   color?: string;
   sizes?: string[];
+  variants?: ProductVariant[];
 };
 
 export const categories = [
@@ -49,6 +58,38 @@ export const products: Product[] = [
     category: "Mobiles",
     mobileType: "flagship",
     subCategory: "flagship",
+    variants: [
+      {
+        color: "Blue",
+        colorHex: "#3b82f6",
+        images: [
+          "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80",
+        ],
+        priceOffset: 0,
+        inStock: true,
+      },
+      {
+        color: "Midnight Black",
+        colorHex: "#18181b",
+        images: [
+          "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80",
+        ],
+        priceOffset: 0,
+        inStock: true,
+      },
+      {
+        color: "Starlight Silver",
+        colorHex: "#e2e8f0",
+        images: [
+          "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+        ],
+        priceOffset: 2000,
+        inStock: true,
+      },
+    ],
   },
   {
     id: "samsung-galaxy-s24",
@@ -58,10 +99,42 @@ export const products: Product[] = [
     price: 119999,
     mrp: 134999,
     rating: 4.8,
-    reviews: "42,100",
+    reviews: "62,100",
     category: "Mobiles",
     mobileType: "flagship",
     subCategory: "flagship",
+    variants: [
+      {
+        color: "Titanium Gray",
+        colorHex: "#64748b",
+        images: [
+          "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80",
+        ],
+        priceOffset: 0,
+        inStock: true,
+      },
+      {
+        color: "Onyx Black",
+        colorHex: "#18181b",
+        images: [
+          "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80",
+        ],
+        priceOffset: 0,
+        inStock: true,
+      },
+      {
+        color: "Amber Yellow",
+        colorHex: "#f59e0b",
+        images: [
+          "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80",
+        ],
+        priceOffset: 1500,
+        inStock: true,
+      },
+    ],
   },
   {
     id: "oneplus-12r",

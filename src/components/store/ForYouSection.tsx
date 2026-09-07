@@ -42,33 +42,33 @@ type MainBanner = {
 const HOMEPAGE_BANNERS: MainBanner[] = [
   {
     id: "sale-banner-1",
-    tag: "GRAND SALE",
+    tag: "GRAND SHOPPING SALE",
     title: "Big Freedom Shopping Fest",
     subtitle: "Up to 80% OFF on 1,00,000+ Items across Mobiles, Fashion & Tech",
     discount: "MIN 50% OFF",
-    image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=80",
+    image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&q=80",
     route: "/fashion",
     badgeColor: "bg-pink-600",
   },
   {
     id: "electronics-banner-2",
-    tag: "TECH & MOBILES",
-    title: "Next-Gen Smartphone & Laptop Carnival",
+    tag: "TECH & MOBILES CARNIVAL",
+    title: "Next-Gen Smartphone & Laptop Deals",
     subtitle: "Flagship 5G Mobiles, OLED Laptops & Smartwatches with No-Cost EMI",
     discount: "FLAT ₹10,000 OFF",
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1400&q=80",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1600&q=80",
     route: "/mobiles",
     badgeColor: "bg-blue-600",
   },
   {
     id: "fashion-banner-3",
-    tag: "MYNTRA-STYLE FASHION",
+    tag: "MYNTRA & FLIPKART FASHION",
     title: "Trending Fashion & Ethnic Wear",
     subtitle: "Top Brands Levi's, Nike, Zara, Biba & HRX Season Clearance",
     discount: "UP TO 70% OFF",
-    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1400&q=80",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1600&q=80",
     route: "/fashion",
-    badgeColor: "bg-pink-600",
+    badgeColor: "bg-purple-600",
   },
   {
     id: "grocery-banner-4",
@@ -76,93 +76,13 @@ const HOMEPAGE_BANNERS: MainBanner[] = [
     title: "Fresh Grocery & Daily Essentials",
     subtitle: "Organic Fruits, Breakfast Essentials, Dry Fruits & Gourmet Snacks",
     discount: "EVERYDAY LOW PRICES",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80",
+    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80",
     route: "/grocery",
     badgeColor: "bg-emerald-600",
   },
 ];
 
-// 2. QUICK CATEGORY ICONS DATA
-type QuickCategory = {
-  label: string;
-  slug: string;
-  icon: React.ReactNode;
-  image: string;
-  route: string;
-};
 
-const QUICK_CATEGORIES: QuickCategory[] = [
-  {
-    label: "Fashion",
-    slug: "fashion",
-    icon: <Shirt className="size-5 text-pink-600" />,
-    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80",
-    route: "/fashion",
-  },
-  {
-    label: "Mobiles",
-    slug: "mobiles",
-    icon: <Smartphone className="size-5 text-blue-600" />,
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=300&q=80",
-    route: "/mobiles",
-  },
-  {
-    label: "Electronics",
-    slug: "electronics",
-    icon: <Tv className="size-5 text-purple-600" />,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=80",
-    route: "/category/Electronics",
-  },
-  {
-    label: "Beauty",
-    slug: "beauty",
-    icon: <Sparkle className="size-5 text-rose-500" />,
-    image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=300&q=80",
-    route: "/category/Beauty",
-  },
-  {
-    label: "Home",
-    slug: "home",
-    icon: <HomeIcon className="size-5 text-amber-600" />,
-    image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?auto=format&fit=crop&w=300&q=80",
-    route: "/category/Home",
-  },
-  {
-    label: "Appliances",
-    slug: "appliances",
-    icon: <Refrigerator className="size-5 text-cyan-600" />,
-    image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=300&q=80",
-    route: "/appliances",
-  },
-  {
-    label: "Grocery",
-    slug: "grocery",
-    icon: <ShoppingBag className="size-5 text-emerald-600" />,
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=300&q=80",
-    route: "/grocery",
-  },
-  {
-    label: "Toys & Gifts",
-    slug: "toys",
-    icon: <Gift className="size-5 text-pink-500" />,
-    image: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?auto=format&fit=crop&w=300&q=80",
-    route: "/category/Beauty",
-  },
-  {
-    label: "Sports",
-    slug: "sports",
-    icon: <Trophy className="size-5 text-orange-500" />,
-    image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=300&q=80",
-    route: "/sports",
-  },
-  {
-    label: "Books",
-    slug: "books",
-    icon: <BookOpen className="size-5 text-indigo-600" />,
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80",
-    route: "/books",
-  },
-];
 
 // 9. TOP BRANDS LIST
 const TOP_BRANDS = [
@@ -173,7 +93,7 @@ const TOP_BRANDS = [
   { name: "Philips", logo: "https://images.unsplash.com/photo-1585238342024-78d387f4a707?auto=format&fit=crop&w=300&q=80" },
   { name: "Adidas", logo: "https://images.unsplash.com/photo-1518002171953-a080ee817e1f?auto=format&fit=crop&w=300&q=80" },
   { name: "Zara", logo: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=300&q=80" },
-  { name: "Levi's", logo: "https://images.unsplash.com/photo-1542272604-780c36856d60?auto=format&fit=crop&w=300&q=80" },
+  { name: "H&M", logo: "https://images.unsplash.com/photo-1542272604-780c36856d60?auto=format&fit=crop&w=300&q=80" },
 ];
 
 export function ForYouSection() {
@@ -182,12 +102,15 @@ export function ForYouSection() {
 
   // Banner State
   const [activeBanner, setActiveBanner] = React.useState(0);
-  const [touchStart, setTouchStart] = React.useState<number | null>(null);
+  const [isBannerHovered, setIsBannerHovered] = React.useState(false);
+  const touchStartX = React.useRef(0);
+  const touchEndX = React.useRef(0);
 
-  // Countdown timer for Flash Sale
-  const [timeLeft, setTimeLeft] = React.useState({ hours: 4, minutes: 32, seconds: 15 });
+  // Live Countdown timer for Limited Time Deals
+  const [timeLeft, setTimeLeft] = React.useState({ hours: 4, minutes: 18, seconds: 42 });
 
   React.useEffect(() => {
+    if (isBannerHovered) return;
     const bannerTimer = setInterval(() => {
       setActiveBanner((prev) => (prev + 1) % HOMEPAGE_BANNERS.length);
     }, 3500);
@@ -205,21 +128,25 @@ export function ForYouSection() {
       clearInterval(bannerTimer);
       clearInterval(clockTimer);
     };
-  }, []);
+  }, [isBannerHovered]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    touchStartX.current = e.touches[0].clientX;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
-    const touchEnd = e.changedTouches[0].clientX;
-    if (touchStart - touchEnd > 50) setActiveBanner((prev) => (prev + 1) % HOMEPAGE_BANNERS.length);
-    if (touchEnd - touchStart > 50) setActiveBanner((prev) => (prev - 1 + HOMEPAGE_BANNERS.length) % HOMEPAGE_BANNERS.length);
-    setTouchStart(null);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
   };
 
-  // DATA LOGIC FOR SECTIONS
+  const handleTouchEnd = () => {
+    if (touchStartX.current - touchEndX.current > 40) {
+      setActiveBanner((prev) => (prev + 1) % HOMEPAGE_BANNERS.length);
+    } else if (touchEndX.current - touchStartX.current > 40) {
+      setActiveBanner((prev) => (prev - 1 + HOMEPAGE_BANNERS.length) % HOMEPAGE_BANNERS.length);
+    }
+  };
+
+  // DATA LOGIC FOR ALL 10 HOMEPAGE SECTIONS
   const recentProducts = React.useMemo(() => {
     if (!recentlyViewed || recentlyViewed.length === 0) return [];
     return recentlyViewed
@@ -228,43 +155,53 @@ export function ForYouSection() {
       .slice(0, 6);
   }, [recentlyViewed]);
 
+  // 3. Deals of the Day (6-10 items with top discount)
   const dealsOfTheDay = React.useMemo(() => {
-    return products.filter((p) => p.isDealOfTheDay || p.mrp > p.price).slice(0, 8);
+    return products.filter((p) => p.isDealOfTheDay || p.mrp > p.price).slice(0, 6);
   }, []);
 
+  // 4. Trending Products (sorted by rating / popularity)
   const trendingProducts = React.useMemo(() => {
     return [...products].sort((a, b) => b.rating - a.rating).slice(0, 6);
   }, []);
 
+  // 5. Most Selling Items (Best Sellers)
   const mostSellingItems = React.useMemo(() => {
     return products.slice(2, 8);
   }, []);
 
+  // 6. Recommended For You (mixed products from all categories)
   const recommendedProducts = React.useMemo(() => {
     return products.slice(5, 11);
   }, []);
 
+  // 7. Discount Zone (High discounts >= 40%)
   const discountZoneProducts = React.useMemo(() => {
     return products
       .filter((p) => Math.round(((p.mrp - p.price) / p.mrp) * 100) >= 40)
       .slice(0, 6);
   }, []);
 
+  // 8. New Arrivals (Fresh products)
   const newArrivals = React.useMemo(() => {
     return products.slice(8, 14);
   }, []);
 
+  // 10. Limited Time Deals (Flash sale)
   const flashSaleDeals = React.useMemo(() => {
     return products.slice(1, 7);
   }, []);
 
   return (
     <section className="mx-auto max-w-[1400px] px-4 py-4 space-y-12 font-sans">
-      {/* 1. BIG BANNER CAROUSEL */}
+      {/* 🎥 1. BIG BANNER CAROUSEL (350px-450px, Auto-Slide, Arrows & Dots) */}
       <div
+        onMouseEnter={() => setIsBannerHovered(true)}
+        onMouseLeave={() => setIsBannerHovered(false)}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="group relative w-full h-[320px] sm:h-[380px] md:h-[450px] rounded-3xl overflow-hidden shadow-2xl border border-border bg-slate-900"
+        className="group relative w-full h-[350px] sm:h-[400px] md:h-[450px] rounded-3xl overflow-hidden shadow-2xl border border-border bg-slate-900"
       >
         {HOMEPAGE_BANNERS.map((b, idx) => (
           <div
@@ -279,7 +216,7 @@ export function ForYouSection() {
               alt={b.title}
               loading="lazy"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://picsum.photos/1200/400?shopping";
+                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=80";
               }}
               className="absolute inset-0 size-full object-cover filter brightness-[0.85] transition-transform duration-1000 group-hover:scale-105"
             />
@@ -289,9 +226,9 @@ export function ForYouSection() {
               <span className={`inline-flex items-center gap-1 px-3.5 py-1 rounded-full text-white font-black text-xs uppercase tracking-widest ${b.badgeColor} shadow-md`}>
                 <Sparkles className="size-3.5 fill-current" /> {b.tag}
               </span>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-md leading-tight">
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-md leading-tight">
                 {b.title}
-              </h1>
+              </h2>
               <p className="text-xs sm:text-sm md:text-lg text-pink-100 font-medium drop-shadow-xs">
                 {b.subtitle}
               </p>
@@ -299,81 +236,51 @@ export function ForYouSection() {
                 to={b.route}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform hover:scale-105 cursor-pointer"
               >
-                <span>Shop Sale Now</span>
+                <span>Explore Mega Deals</span>
                 <ArrowRight className="size-4" />
               </Link>
             </div>
           </div>
         ))}
 
+        {/* Previous Arrow */}
         <button
+          type="button"
           onClick={() => setActiveBanner((prev) => (prev - 1 + HOMEPAGE_BANNERS.length) % HOMEPAGE_BANNERS.length)}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 size-11 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 cursor-pointer"
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 size-11 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity hover:bg-black/70 cursor-pointer shadow-md"
+          aria-label="Previous Banner"
         >
           <ChevronLeft className="size-6" />
         </button>
+
+        {/* Next Arrow */}
         <button
+          type="button"
           onClick={() => setActiveBanner((prev) => (prev + 1) % HOMEPAGE_BANNERS.length)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 size-11 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 cursor-pointer"
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 size-11 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity hover:bg-black/70 cursor-pointer shadow-md"
+          aria-label="Next Banner"
         >
           <ChevronRight className="size-6" />
         </button>
 
+        {/* Indicator Dots */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
           {HOMEPAGE_BANNERS.map((_, i) => (
             <button
               key={i}
+              type="button"
               onClick={() => setActiveBanner(i)}
               className={
                 "h-2 rounded-full transition-all cursor-pointer " +
                 (i === activeBanner ? "w-8 bg-pink-600" : "w-2 bg-white/60 hover:bg-white")
               }
+              aria-label={`Banner ${i + 1}`}
             />
           ))}
         </div>
       </div>
 
-      {/* 2. QUICK CATEGORY ICONS */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between border-b border-border pb-2">
-          <h2 className="text-base md:text-lg font-black uppercase tracking-tight text-foreground flex items-center gap-2">
-            <Sparkles className="size-5 text-pink-600" /> Explore Top Categories
-          </h2>
-          <span className="text-xs font-bold text-muted-foreground uppercase">10 Departments</span>
-        </div>
-
-        <div className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 scrollbar-none">
-          {QUICK_CATEGORIES.map((cat) => (
-            <Link
-              key={cat.slug}
-              to={cat.route}
-              onClick={() => setCategory(cat.label)}
-              className="group flex-shrink-0 flex flex-col items-center justify-center p-3 rounded-2xl border border-border bg-card shadow-xs hover:border-pink-600 hover:shadow-md transition-all duration-300 w-24 text-center cursor-pointer"
-            >
-              <div className="size-14 rounded-xl overflow-hidden bg-muted mb-2 relative flex items-center justify-center">
-                <img
-                  src={cat.image}
-                  alt={cat.label}
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://picsum.photos/150?category";
-                  }}
-                  className="size-full object-cover transition-transform duration-300 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <div className="absolute inset-0 flex items-center justify-center filter drop-shadow-md">
-                  {cat.icon}
-                </div>
-              </div>
-              <span className="text-xs font-bold text-foreground group-hover:text-pink-600 transition-colors line-clamp-1">
-                {cat.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* RECENTLY VIEWED (If Available) */}
+      {/* RECENTLY VIEWED SECTION (If Available) */}
       {recentProducts.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
@@ -399,7 +306,7 @@ export function ForYouSection() {
         </div>
       )}
 
-      {/* 3. DEALS OF THE DAY */}
+      {/* ⚡ 3. DEALS OF THE DAY */}
       <div className="space-y-4 rounded-3xl border border-pink-200 dark:border-pink-900/60 bg-pink-50/50 dark:bg-pink-950/20 p-5 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-pink-200/80 dark:border-border pb-3">
           <div className="flex items-center gap-2">
@@ -430,7 +337,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 4. TRENDING PRODUCTS */}
+      {/* 🔥 4. TRENDING PRODUCTS */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -455,7 +362,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 5. MOST SELLING ITEMS */}
+      {/* ⭐ 5. MOST SELLING ITEMS */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -480,7 +387,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 6. RECOMMENDED FOR YOU */}
+      {/* 🎯 6. RECOMMENDED FOR YOU */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -505,7 +412,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 7. DISCOUNT ZONE */}
+      {/* 💸 7. DISCOUNT ZONE */}
       <div className="space-y-4 rounded-3xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 p-5 shadow-xs">
         <div className="flex items-center justify-between border-b border-amber-200/80 dark:border-border pb-3">
           <div className="flex items-center gap-2">
@@ -530,7 +437,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 8. NEW ARRIVALS */}
+      {/* 🆕 8. NEW ARRIVALS */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -555,7 +462,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 9. TOP BRANDS STORE */}
+      {/* 🏆 9. TOP BRANDS STORE */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -578,8 +485,7 @@ export function ForYouSection() {
             <div
               key={b.name}
               onClick={() => {
-                setCategory("For You");
-                navigate({ to: "/mobiles" });
+                navigate({ to: "/search", search: { q: b.name } });
               }}
               className="group flex flex-col items-center justify-center p-3 rounded-2xl border border-border bg-card shadow-xs hover:border-pink-600 hover:shadow-md transition-all cursor-pointer text-center"
             >
@@ -589,7 +495,7 @@ export function ForYouSection() {
                   alt={b.name}
                   loading="lazy"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://picsum.photos/150?brand";
+                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=300&q=80";
                   }}
                   className="size-full object-cover transition-transform duration-300 group-hover:scale-110"
                 />
@@ -602,7 +508,7 @@ export function ForYouSection() {
         </div>
       </div>
 
-      {/* 10. LIMITED TIME DEALS */}
+      {/* ⏳ 10. LIMITED TIME DEALS */}
       <div className="space-y-4 rounded-3xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 p-6 shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rose-200/80 dark:border-border pb-4">
           <div className="flex items-center gap-3">

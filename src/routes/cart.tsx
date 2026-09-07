@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ShoppingCart,
@@ -10,77 +10,41 @@ import {
   Tag,
   Truck,
   Receipt,
+  HelpCircle,
+  Info,
 } from "lucide-react";
 import { SiteHeader } from "@/components/store/SiteHeader";
 import { SiteFooter } from "@/components/store/SiteFooter";
 import { CartPanel } from "@/components/store/CartPanel";
 import { ChatBot } from "@/components/store/ChatBot";
-import { StoreProvider, useStore, getGstBreakdown } from "@/components/store/store-context";
+import { useStore, getProductGstRate } from "@/components/store/store-context";
 import { inr } from "@/components/store/catalog";
 import { handleImageError } from "@/components/store/image-fallback";
+import { GstBreakdownModal, PlatformFeeModal } from "@/components/store/BillBreakdownModals";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/cart")({
-  component: CartRoute,
+  component: CartPage,
 });
-
-function CartRoute() {
-  return (
-    <StoreProvider>
-      <CartPage />
-      <CartPanel />
-      <ChatBot />
-    </StoreProvider>
-  );
-}
 
 function CartPage() {
   const {
     cart,
     cartCount,
-    cartSubtotal,
-    cartGstTotal,
-    deliveryFee,
-    cartMrpTotal,
     setQty,
     removeFromCart,
     clearCart,
   } = useStore();
 
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const [couponCode, setCouponCode] = React.useState("");
   const [discount, setDiscount] = React.useState(0);
   const [appliedCoupon, setAppliedCoupon] = React.useState("");
 
-  const handleProceedToCheckout = () => {
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("buyNowProduct");
-      }
-    } catch {}
-    window.scrollTo({ top: 0, behavior: "instant" });
-    navigate({ to: "/checkout" });
-  };
-
-  const totalBeforeCoupon = cartSubtotal + cartGstTotal + deliveryFee;
-  const finalTotal = Math.max(0, totalBeforeCoupon - discount);
-  const totalSavings = cartMrpTotal - cartSubtotal + discount;
-
-  const handleApplyCoupon = (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = couponCode.trim().toUpperCase();
-    if (!code) return;
-
-    if (code === "KARTLY10" || code === "SAVE10" || code === "WELCOME10") {
-      const disc = Math.round(cartSubtotal * 0.1);
-      setDiscount(disc);
-      setAppliedCoupon(code);
-      toast.success("Coupon Applied!", { description: `Saved extra ${inr(disc)} with ${code}` });
-    } else {
-      toast.error("Invalid Coupon", { description: "Try using code KARTLY10" });
-    }
-  };
+  // Modal states for GST & Platform Fee breakdowns
+  const [isGstModalOpen, setIsGstModalOpen] = React.useState(false);
+  const [isPlatformModalOpen, setIsPlatformModalOpen] = React.useState(false);
 
   const safeCartItems = React.useMemo(() => {
     try {
@@ -90,6 +54,54 @@ function CartPage() {
       return [];
     }
   }, [cart]);
+
+  // Dynamic Swiggy/Zomato style bill calculations
+  const platformFee = 10;
+
+  const cartItemSubtotal = safeCartItems.reduce(
+    (acc, line) => acc + line.product.price * line.qty,
+    0
+  );
+
+  const cartMrpTotal = safeCartItems.reduce(
+    (acc, line) => acc + line.product.mrp * line.qty,
+    0
+  );
+
+  const cartGstTotal = safeCartItems.reduce((acc, line) => {
+    const rate = getProductGstRate(line.product);
+    return acc + Math.round((line.product.price * line.qty * rate) / 100);
+  }, 0);
+
+  const deliveryFee = cartItemSubtotal > 499 ? 0 : safeCartItems.length > 0 ? 40 : 0;
+  const totalBeforeCoupon = cartItemSubtotal + cartGstTotal + platformFee + deliveryFee;
+  const finalTotal = Math.max(0, totalBeforeCoupon - discount);
+  const totalSavings = (cartMrpTotal - cartItemSubtotal) + discount;
+
+  const handleProceedToCheckout = () => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("buyNowProduct");
+      }
+    } catch {}
+    window.scrollTo({ top: 0, behavior: "instant" });
+    router.navigate({ to: "/checkout" });
+  };
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+
+    if (code === "KARTLY10" || code === "SAVE10" || code === "WELCOME10") {
+      const disc = Math.round(cartItemSubtotal * 0.1);
+      setDiscount(disc);
+      setAppliedCoupon(code);
+      toast.success("Coupon Applied!", { description: `Saved extra ${inr(disc)} with ${code}` });
+    } else {
+      toast.error("Invalid Coupon", { description: "Try using code KARTLY10" });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -143,22 +155,11 @@ function CartPage() {
             <div className="lg:col-span-8 space-y-4">
               <div className="border border-border bg-card divide-y divide-border rounded-xl shadow-xs overflow-hidden">
                 {safeCartItems.map((line) => {
-                  const safeGstBreakdown = (price: number, qty: number) => {
-                    try {
-                      if (typeof getGstBreakdown === "function") {
-                        return getGstBreakdown(price, qty);
-                      }
-                    } catch {}
-                    const safePrice = price || 0;
-                    const safeQty = qty || 1;
-                    const rate = safePrice <= 1000 ? 5 : 12;
-                    const gstAmount = Math.round((safePrice * safeQty * rate) / 100);
-                    const itemPrice = safePrice * safeQty;
-                    const totalPrice = itemPrice + gstAmount;
-                    return { rate, gstAmount, itemPrice, totalPrice };
-                  };
-
-                  const gst = safeGstBreakdown(line.product.price, line.qty);
+                  const rate = getProductGstRate(line.product);
+                  const itemPrice = line.product.price * line.qty;
+                  const gstAmount = Math.round((itemPrice * rate) / 100);
+                  const totalPrice = itemPrice + gstAmount;
+                  const gst = { rate, gstAmount, itemPrice, totalPrice };
                   const itemSavings = (line.product.mrp - line.product.price) * line.qty;
 
                   return (
@@ -294,66 +295,125 @@ function CartPage() {
                 )}
               </div>
 
-              {/* Bill Summary Box (Swiggy/Flipkart Style) */}
+              {/* Bill Summary Box (Swiggy/Zomato Style) */}
               <div className="border border-border bg-card p-5 space-y-4 rounded-xl shadow-xs">
                 <div className="flex items-center gap-2 border-b border-border pb-3">
                   <Receipt className="size-4 text-brand" />
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">
-                    Bill Summary
+                    Bill Detailed Breakdown
                   </h3>
                 </div>
 
-                <div className="space-y-2.5 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Item Subtotal ({cartCount} items)</span>
-                    <span className="font-semibold">{inr(cartSubtotal)}</span>
+                <div className="space-y-3 text-xs">
+                  {/* Item Total */}
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>Item Total ({cartCount} items)</span>
+                    <span className="font-semibold text-foreground">{inr(cartItemSubtotal)}</span>
                   </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">GST & Applicable Taxes</span>
+                  {/* GST & Charges line with Clickable Popup Trigger */}
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setIsGstModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 hover:text-brand transition-colors cursor-pointer group text-left"
+                      title="Click to view detailed per-product GST breakdown"
+                    >
+                      <span className="underline decoration-dotted underline-offset-4 font-medium">
+                        GST & Statutory Taxes
+                      </span>
+                      <span className="bg-brand/10 text-brand rounded-full p-0.5 group-hover:bg-brand group-hover:text-primary-foreground transition-colors">
+                        <Info className="size-3.5" />
+                      </span>
+                    </button>
                     <span className="font-semibold text-brand">+{inr(cartGstTotal)}</span>
                   </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Delivery Charges</span>
+                  {/* Platform Fee line with Clickable Popup Trigger */}
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setIsPlatformModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 hover:text-brand transition-colors cursor-pointer group text-left"
+                      title="Click to view platform fee details"
+                    >
+                      <span className="underline decoration-dotted underline-offset-4 font-medium">
+                        Platform Fee
+                      </span>
+                      <span className="bg-brand/10 text-brand rounded-full p-0.5 group-hover:bg-brand group-hover:text-primary-foreground transition-colors">
+                        <Info className="size-3.5" />
+                      </span>
+                    </button>
+                    <span className="font-semibold text-foreground">+{inr(platformFee)}</span>
+                  </div>
+
+                  {/* Delivery Charges */}
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>Delivery Fee</span>
                     {deliveryFee === 0 ? (
-                      <span className="text-emerald-600 font-bold">FREE</span>
+                      <span className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded text-[11px]">
+                        FREE
+                      </span>
                     ) : (
-                      <span className="font-semibold">{inr(deliveryFee)}</span>
+                      <span className="font-semibold text-foreground">{inr(deliveryFee)}</span>
                     )}
                   </div>
 
+                  {/* Coupon Discount if applied */}
                   {discount > 0 && (
-                    <div className="flex justify-between text-emerald-600">
-                      <span>Coupon Discount</span>
-                      <span className="font-semibold">-{inr(discount)}</span>
+                    <div className="flex justify-between items-center text-emerald-600 font-semibold bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded border border-emerald-200/50">
+                      <span className="flex items-center gap-1">
+                        <Tag className="size-3.5" /> Coupon Discount ({appliedCoupon})
+                      </span>
+                      <span>-{inr(discount)}</span>
                     </div>
                   )}
 
-                  <div className="border-t border-dashed border-border pt-3 flex justify-between font-bold text-base text-foreground">
-                    <span>Total Amount Payable</span>
-                    <span className="text-lg text-brand">{inr(finalTotal)}</span>
+                  {/* Final Payable Amount line */}
+                  <div className="border-t border-dashed border-border pt-3.5 flex justify-between items-center font-black text-foreground">
+                    <div className="space-y-0.5">
+                      <span className="text-sm uppercase tracking-wider block">To Pay</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Inclusive of all taxes & charges
+                      </span>
+                    </div>
+                    <span className="text-xl text-brand font-black">{inr(finalTotal)}</span>
                   </div>
                 </div>
 
+                {/* Savings Pill */}
                 {totalSavings > 0 && (
-                  <div className="bg-emerald-50 text-emerald-700 text-xs font-semibold p-2.5 rounded-md text-center border border-emerald-200">
-                    🎉 Total Savings: {inr(totalSavings)} on this order
+                  <div className="bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-bold p-2.5 rounded-lg text-center border border-emerald-200/80 flex items-center justify-center gap-1.5 shadow-2xs">
+                    <span>🎉</span> You saved <span className="underline font-extrabold">{inr(totalSavings)}</span> on this order!
                   </div>
                 )}
 
                 <button
                   type="button"
                   onClick={handleProceedToCheckout}
-                  className="w-full bg-accent px-4 py-3.5 text-center text-sm font-bold text-accent-foreground transition-opacity hover:opacity-90 flex items-center justify-center gap-2 mt-4 rounded-md shadow-xs cursor-pointer"
+                  className="w-full bg-brand hover:bg-brand-deep text-primary-foreground font-extrabold text-sm uppercase tracking-wider py-3.5 rounded-xl shadow-md transition-all hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer mt-2"
                 >
-                  Proceed to Checkout <ArrowRight className="size-4" />
+                  Proceed to Checkout <ArrowRight className="size-4.5" />
                 </button>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* Dynamic Swiggy/Zomato Style Interactive Popups */}
+      <GstBreakdownModal
+        isOpen={isGstModalOpen}
+        onClose={() => setIsGstModalOpen(false)}
+        items={safeCartItems}
+        gstTotal={cartGstTotal}
+      />
+
+      <PlatformFeeModal
+        isOpen={isPlatformModalOpen}
+        onClose={() => setIsPlatformModalOpen(false)}
+        feeAmount={platformFee}
+      />
 
       <SiteFooter />
     </div>

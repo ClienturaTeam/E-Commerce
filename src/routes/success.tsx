@@ -20,6 +20,9 @@ import { StoreProvider, useStore, type Order } from "@/components/store/store-co
 import { products, inr } from "@/components/store/catalog";
 
 export const Route = createFileRoute("/success")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    orderId: (search.orderId as string) || undefined,
+  }),
   component: SuccessRoute,
 });
 
@@ -28,18 +31,31 @@ function SuccessRoute() {
 }
 
 function SuccessPage() {
-  const { lastOrder, orders } = useStore();
+  const { orders } = useStore();
+  const search = Route.useSearch();
   const [invoiceOpen, setInvoiceOpen] = React.useState(false);
 
-  // Guarantees that /success ALWAYS renders a complete Order Confirmation page under any condition
-  const currentOrder: Order = React.useMemo(() => {
-    if (lastOrder) return lastOrder;
-    if (orders.length > 0) return orders[0];
+  const lastOrderId = React.useMemo(() => {
+    if (search.orderId) return search.orderId;
+    try {
+      if (typeof window !== "undefined") {
+        return window.localStorage.getItem("kartly.lastOrderId");
+      }
+    } catch {}
+    return null;
+  }, [search.orderId]);
+
+  const currentOrder = React.useMemo(() => {
+    if (lastOrderId) {
+      const found = orders.find((o) => o.id === lastOrderId);
+      if (found) return found;
+    }
+    if (orders.length > 0 && orders[0]) return orders[0];
 
     const now = new Date();
     const deliveryDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const item1 = products[0];
-    const item2 = products[3] || products[1];
+    const item1 = products[0]!;
+    const item2 = products[1] || products[0]!;
 
     return {
       id: "KART-ORD-928415",
@@ -47,34 +63,47 @@ function SuccessPage() {
         day: "numeric",
         month: "short",
         year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
       }),
       items: [
-        { product: item1, qty: 1 },
-        { product: item2, qty: 1 },
+        { product: item1, qty: 1, priceAtPurchase: item1.price },
+        { product: item2, qty: 1, priceAtPurchase: item2.price },
       ],
+      subtotal: item1.price + item2.price,
+      discount: (item1.mrp - item1.price) + (item2.mrp - item2.price),
+      deliveryCharge: 0,
+      couponDiscount: 0,
       totalAmount: item1.price + item2.price,
-      mrpTotal: item1.mrp + item2.mrp,
-      savings: item1.mrp - item1.price + (item2.mrp - item2.price),
-      deliveryAddress: {
-        fullName: "Rahul Sharma",
+      address: {
+        id: "addr-1",
+        name: "Rahul Sharma",
         phone: "9876543210",
-        pincode: "560001",
-        addressLine: "Flat 402, Sunshine Apartments, 5th Main, Indiranagar",
+        house: "Flat 402, Sunshine Apartments",
+        street: "5th Main, Indiranagar",
         city: "Bengaluru",
         state: "Karnataka",
-        addressType: "home",
+        pincode: "560001",
+        type: "home" as const,
       },
-      paymentMethod: "UPI",
-      paymentStatus: "SUCCESS",
+      payment: {
+        method: "upi" as const,
+        providerName: "PhonePe",
+        upiId: "rahul@ybl",
+      },
+      status: "PLACED" as const,
       estimatedDelivery: deliveryDate.toLocaleDateString("en-IN", {
         weekday: "short",
         day: "numeric",
         month: "short",
       }),
+      timeline: [],
     };
-  }, [lastOrder, orders]);
+  }, [orders]);
+
+  const addr = (currentOrder as any).address || (currentOrder as any).deliveryAddress;
+  const addrName = addr?.name || addr?.fullName || "Kartly Customer";
+  const addrLine = addr?.house ? `${addr.house}, ${addr.street}` : addr?.addressLine || "Indiranagar";
+  const addrPhone = addr?.phone || "9876543210";
+  const payMethod = (currentOrder as any).payment?.method || (currentOrder as any).paymentMethod || "UPI";
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -91,7 +120,7 @@ function SuccessPage() {
           </h1>
           <p className="text-sm text-emerald-800 font-medium max-w-lg mx-auto">
             Thank you for shopping with Kartly! Confirmation SMS and email has been sent to{" "}
-            <strong>{currentOrder.deliveryAddress.phone}</strong>.
+            <strong>{addrPhone}</strong>.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
             <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-900 px-4 py-1.5 rounded-full text-xs font-bold">
@@ -151,19 +180,13 @@ function SuccessPage() {
               <MapPin className="size-4 text-brand" /> Delivery Address
             </h3>
             <div className="text-xs text-foreground space-y-1">
-              <p className="font-bold text-sm">{currentOrder.deliveryAddress.fullName}</p>
-              <p>{currentOrder.deliveryAddress.addressLine}</p>
+              <p className="font-bold text-sm">{addrName}</p>
+              <p>{addrLine}</p>
               <p>
-                {currentOrder.deliveryAddress.city}, {currentOrder.deliveryAddress.state} -{" "}
-                {currentOrder.deliveryAddress.pincode}
+                {addr?.city}, {addr?.state} - {addr?.pincode}
               </p>
-              {currentOrder.deliveryAddress.landmark && (
-                <p className="text-muted-foreground">
-                  Landmark: {currentOrder.deliveryAddress.landmark}
-                </p>
-              )}
               <p className="pt-1 flex items-center gap-1 font-semibold text-muted-foreground">
-                <Phone className="size-3" /> {currentOrder.deliveryAddress.phone}
+                <Phone className="size-3" /> {addrPhone}
               </p>
             </div>
           </div>
@@ -176,20 +199,20 @@ function SuccessPage() {
             <div className="text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Method:</span>
-                <span className="font-bold text-foreground">{currentOrder.paymentMethod}</span>
+                <span className="font-bold uppercase text-foreground">{payMethod}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Status:</span>
-                <span className="font-bold text-emerald-600">{currentOrder.paymentStatus}</span>
+                <span className="font-bold text-emerald-600">SUCCESS</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total MRP:</span>
-                <span>{inr(currentOrder.mrpTotal)}</span>
+                <span className="text-muted-foreground">Subtotal:</span>
+                <span>{inr(currentOrder.subtotal)}</span>
               </div>
-              {currentOrder.savings > 0 && (
+              {currentOrder.discount > 0 && (
                 <div className="flex justify-between text-emerald-600 font-semibold">
                   <span>Total Discount Saved:</span>
-                  <span>-{inr(currentOrder.savings)}</span>
+                  <span>-{inr(currentOrder.discount)}</span>
                 </div>
               )}
               <div className="border-t border-border pt-2 flex justify-between font-bold text-sm text-foreground">
@@ -203,11 +226,11 @@ function SuccessPage() {
         {/* Ordered Items List */}
         <div className="border border-border bg-card p-5 rounded-lg space-y-4 shadow-sm">
           <h3 className="text-sm font-bold text-foreground border-b border-border pb-2">
-            Items Ordered ({currentOrder.items.reduce((acc, i) => acc + i.qty, 0)})
+            Items Ordered ({currentOrder.items.reduce((acc: number, i: any) => acc + i.qty, 0)})
           </h3>
 
           <div className="divide-y divide-border">
-            {currentOrder.items.map((line) => (
+            {currentOrder.items.map((line: any) => (
               <div key={line.product.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <img
@@ -236,17 +259,24 @@ function SuccessPage() {
         </div>
 
         {/* Continue Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          <Link
+            to="/invoice/$orderId"
+            params={{ orderId: currentOrder.id }}
+            className="w-full sm:w-auto bg-brand px-6 py-3 text-center text-xs font-black text-primary-foreground transition-all hover:bg-brand-deep flex items-center justify-center gap-2 rounded-xl shadow-md cursor-pointer"
+          >
+            <FileText className="size-4" /> View & Download Tax Invoice
+          </Link>
           <Link
             to="/track/$id"
             params={{ id: currentOrder.id }}
-            className="w-full sm:w-auto bg-accent px-8 py-3 text-center text-sm font-bold text-accent-foreground transition-opacity hover:opacity-90 flex items-center justify-center gap-2 rounded-md shadow-xs"
+            className="w-full sm:w-auto bg-accent px-6 py-3 text-center text-xs font-black text-accent-foreground transition-opacity hover:opacity-90 flex items-center justify-center gap-2 rounded-xl shadow-xs cursor-pointer"
           >
             <Truck className="size-4" /> Track Order
           </Link>
           <Link
             to="/"
-            className="w-full sm:w-auto border border-border bg-card px-8 py-3 text-center text-sm font-bold text-foreground transition-colors hover:border-brand flex items-center justify-center gap-2 rounded-md"
+            className="w-full sm:w-auto border border-border bg-card px-6 py-3 text-center text-xs font-bold text-foreground transition-colors hover:border-brand flex items-center justify-center gap-2 rounded-xl cursor-pointer"
           >
             Continue Shopping <ArrowRight className="size-4" />
           </Link>
@@ -254,7 +284,7 @@ function SuccessPage() {
       </main>
 
       <SiteFooter />
-      <OrderInvoiceModal order={currentOrder} open={invoiceOpen} onOpenChange={setInvoiceOpen} />
+      <OrderInvoiceModal order={(currentOrder || null) as any} open={invoiceOpen} onOpenChange={setInvoiceOpen} />
     </div>
   );
 }

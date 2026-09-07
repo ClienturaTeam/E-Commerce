@@ -7,17 +7,17 @@ import { StoreProvider, useStore } from "@/components/store/store-context";
 import { EnterpriseAuthProvider, useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 import { inr } from "@/components/store/catalog";
 
+import { RequirePortalAuth } from "@/components/auth/RequirePortalAuth";
+
 export const Route = createFileRoute("/customer/dashboard")({
   component: CustomerDashboardRoute,
 });
 
 function CustomerDashboardRoute() {
   return (
-    <StoreProvider>
-      <EnterpriseAuthProvider>
-        <CustomerDashboardPage />
-      </EnterpriseAuthProvider>
-    </StoreProvider>
+    <RequirePortalAuth requiredRole="CUSTOMER">
+      <CustomerDashboardPage />
+    </RequirePortalAuth>
   );
 }
 
@@ -109,18 +109,23 @@ function CustomerDashboardPage() {
 
               <div className="space-y-3">
                 {safeOrders.length > 0 ? (
-                  safeOrders.map((o) => (
-                    <div key={o.id} className="border border-border p-3.5 rounded text-xs space-y-2">
-                      <div className="flex items-center justify-between font-bold border-b border-border pb-2">
-                        <span>Order #{o.id}</span>
-                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{o.paymentStatus}</span>
+                  safeOrders.map((o) => {
+                    const payStatus = o.payment_status || (o as any).paymentStatus || o.payment?.status || "PAID";
+                    const amountVal = typeof o.totalAmount === "number" ? o.totalAmount : typeof o.total_amount === "number" ? o.total_amount : 0;
+
+                    return (
+                      <div key={o.id} className="border border-border p-3.5 rounded text-xs space-y-2">
+                        <div className="flex items-center justify-between font-bold border-b border-border pb-2">
+                          <span>Order #{o.id}</span>
+                          <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{payStatus}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Placed on: {o.date || "Recently"}</span>
+                          <span className="font-extrabold text-foreground">{inr(amountVal)}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Placed on: {o.date}</span>
-                        <span className="font-extrabold text-foreground">{inr(o.totalAmount)}</span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="border border-dashed border-border p-4 rounded text-center text-xs text-muted-foreground">
                     Order #KART-ORD-928415 · Delivered on 14 Aug · Total: ₹2,998

@@ -10,13 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppliancesRouteImport } from './routes/appliances'
 import { Route as BeautyRouteImport } from './routes/beauty'
 import { Route as BooksRouteImport } from './routes/books'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CustomerRouteImport } from './routes/customer'
+import { Route as DeliveryRouteImport } from './routes/delivery'
 import { Route as ElectronicsRouteImport } from './routes/electronics'
 import { Route as FashionRouteImport } from './routes/fashion'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as FurnitureRouteImport } from './routes/furniture'
 import { Route as GroceryRouteImport } from './routes/grocery'
 import { Route as HomeRouteImport } from './routes/home'
@@ -29,8 +33,11 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SellerRouteImport } from './routes/seller'
 import { Route as SportsRouteImport } from './routes/sports'
 import { Route as SuccessRouteImport } from './routes/success'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as ToysRouteImport } from './routes/toys'
 import { Route as ToysGiftsRouteImport } from './routes/toys-gifts'
+import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -58,6 +65,7 @@ import { Route as GroceryIndexRouteImport } from './routes/grocery.index'
 import { Route as GroceryTypeRouteImport } from './routes/grocery.$type'
 import { Route as HomeIndexRouteImport } from './routes/home.index'
 import { Route as HomeTypeRouteImport } from './routes/home.$type'
+import { Route as InvoiceOrderIdRouteImport } from './routes/invoice.$orderId'
 import { Route as MobilesIndexRouteImport } from './routes/mobiles.index'
 import { Route as MobilesTypeRouteImport } from './routes/mobiles.$type'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
@@ -74,6 +82,7 @@ import { Route as ToysGiftsIndexRouteImport } from './routes/toys-gifts.index'
 import { Route as ToysGiftsTypeRouteImport } from './routes/toys-gifts.$type'
 import { Route as ToysIndexRouteImport } from './routes/toys.index'
 import { Route as ToysTypeRouteImport } from './routes/toys.$type'
+import { Route as TrackOrderOrderIdRouteImport } from './routes/track-order.$orderId'
 import { Route as TrackIdRouteImport } from './routes/track.$id'
 import { Route as WarehouseDashboardRouteImport } from './routes/warehouse.dashboard'
 import { Route as WarehouseLoginRouteImport } from './routes/warehouse.login'
@@ -97,6 +106,11 @@ import { Route as ToysBrandBrandRouteImport } from './routes/toys.brand.$brand'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppliancesRoute = AppliancesRouteImport.update({
@@ -124,6 +138,16 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomerRoute = CustomerRouteImport.update({
+  id: '/customer',
+  path: '/customer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryRoute = DeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ElectronicsRoute = ElectronicsRouteImport.update({
   id: '/electronics',
   path: '/electronics',
@@ -132,6 +156,11 @@ const ElectronicsRoute = ElectronicsRouteImport.update({
 const FashionRoute = FashionRouteImport.update({
   id: '/fashion',
   path: '/fashion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FurnitureRoute = FurnitureRouteImport.update({
@@ -194,6 +223,16 @@ const SuccessRoute = SuccessRouteImport.update({
   path: '/success',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToysRoute = ToysRouteImport.update({
   id: '/toys',
   path: '/toys',
@@ -204,20 +243,25 @@ const ToysGiftsRoute = ToysGiftsRouteImport.update({
   path: '/toys-gifts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WarehouseRoute = WarehouseRouteImport.update({
+  id: '/warehouse',
+  path: '/warehouse',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
   path: '/wishlist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
-  id: '/admin/dashboard',
-  path: '/admin/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AppliancesIndexRoute = AppliancesIndexRouteImport.update({
   id: '/',
@@ -255,24 +299,24 @@ const CategoryNameRoute = CategoryNameRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomerDashboardRoute = CustomerDashboardRouteImport.update({
-  id: '/customer/dashboard',
-  path: '/customer/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => CustomerRoute,
 } as any)
 const CustomerLoginRoute = CustomerLoginRouteImport.update({
-  id: '/customer/login',
-  path: '/customer/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => CustomerRoute,
 } as any)
 const DeliveryDashboardRoute = DeliveryDashboardRouteImport.update({
-  id: '/delivery/dashboard',
-  path: '/delivery/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => DeliveryRoute,
 } as any)
 const DeliveryLoginRoute = DeliveryLoginRouteImport.update({
-  id: '/delivery/login',
-  path: '/delivery/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => DeliveryRoute,
 } as any)
 const ElectronicsIndexRoute = ElectronicsIndexRouteImport.update({
   id: '/',
@@ -310,14 +354,14 @@ const FashionWomenRoute = FashionWomenRouteImport.update({
   getParentRoute: () => FashionRoute,
 } as any)
 const FinanceDashboardRoute = FinanceDashboardRouteImport.update({
-  id: '/finance/dashboard',
-  path: '/finance/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => FinanceRoute,
 } as any)
 const FinanceLoginRoute = FinanceLoginRouteImport.update({
-  id: '/finance/login',
-  path: '/finance/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => FinanceRoute,
 } as any)
 const GroceryIndexRoute = GroceryIndexRouteImport.update({
   id: '/',
@@ -338,6 +382,11 @@ const HomeTypeRoute = HomeTypeRouteImport.update({
   id: '/$type',
   path: '/$type',
   getParentRoute: () => HomeRoute,
+} as any)
+const InvoiceOrderIdRoute = InvoiceOrderIdRouteImport.update({
+  id: '/invoice/$orderId',
+  path: '/invoice/$orderId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const MobilesIndexRoute = MobilesIndexRouteImport.update({
   id: '/',
@@ -380,24 +429,24 @@ const SportsTypeRoute = SportsTypeRouteImport.update({
   getParentRoute: () => SportsRoute,
 } as any)
 const SuperAdminDashboardRoute = SuperAdminDashboardRouteImport.update({
-  id: '/super-admin/dashboard',
-  path: '/super-admin/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminLoginRoute = SuperAdminLoginRouteImport.update({
-  id: '/super-admin/login',
-  path: '/super-admin/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => SuperAdminRoute,
 } as any)
 const SupportDashboardRoute = SupportDashboardRouteImport.update({
-  id: '/support/dashboard',
-  path: '/support/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => SupportRoute,
 } as any)
 const SupportLoginRoute = SupportLoginRouteImport.update({
-  id: '/support/login',
-  path: '/support/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => SupportRoute,
 } as any)
 const ToysGiftsIndexRoute = ToysGiftsIndexRouteImport.update({
   id: '/',
@@ -419,20 +468,25 @@ const ToysTypeRoute = ToysTypeRouteImport.update({
   path: '/$type',
   getParentRoute: () => ToysRoute,
 } as any)
+const TrackOrderOrderIdRoute = TrackOrderOrderIdRouteImport.update({
+  id: '/track-order/$orderId',
+  path: '/track-order/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackIdRoute = TrackIdRouteImport.update({
   id: '/track/$id',
   path: '/track/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WarehouseDashboardRoute = WarehouseDashboardRouteImport.update({
-  id: '/warehouse/dashboard',
-  path: '/warehouse/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseLoginRoute = WarehouseLoginRouteImport.update({
-  id: '/warehouse/login',
-  path: '/warehouse/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const AppliancesBrandBrandRoute = AppliancesBrandBrandRouteImport.update({
   id: '/brand/$brand',
@@ -517,13 +571,17 @@ const ToysBrandBrandRoute = ToysBrandBrandRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/appliances': typeof AppliancesRouteWithChildren
   '/beauty': typeof BeautyRouteWithChildren
   '/books': typeof BooksRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/customer': typeof CustomerRouteWithChildren
+  '/delivery': typeof DeliveryRouteWithChildren
   '/electronics': typeof ElectronicsRouteWithChildren
   '/fashion': typeof FashionRouteWithChildren
+  '/finance': typeof FinanceRouteWithChildren
   '/furniture': typeof FurnitureRoute
   '/grocery': typeof GroceryRouteWithChildren
   '/home': typeof HomeRouteWithChildren
@@ -536,8 +594,11 @@ export interface FileRoutesByFullPath {
   '/seller': typeof SellerRouteWithChildren
   '/sports': typeof SportsRouteWithChildren
   '/success': typeof SuccessRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/support': typeof SupportRouteWithChildren
   '/toys': typeof ToysRouteWithChildren
   '/toys-gifts': typeof ToysGiftsRouteWithChildren
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/wishlist': typeof WishlistRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -558,6 +619,7 @@ export interface FileRoutesByFullPath {
   '/finance/login': typeof FinanceLoginRoute
   '/grocery/$type': typeof GroceryTypeRoute
   '/home/$type': typeof HomeTypeRoute
+  '/invoice/$orderId': typeof InvoiceOrderIdRoute
   '/mobiles/$type': typeof MobilesTypeRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
@@ -570,6 +632,7 @@ export interface FileRoutesByFullPath {
   '/support/login': typeof SupportLoginRoute
   '/toys-gifts/$type': typeof ToysGiftsTypeRoute
   '/toys/$type': typeof ToysTypeRoute
+  '/track-order/$orderId': typeof TrackOrderOrderIdRoute
   '/track/$id': typeof TrackIdRoute
   '/warehouse/dashboard': typeof WarehouseDashboardRoute
   '/warehouse/login': typeof WarehouseLoginRoute
@@ -603,8 +666,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/customer': typeof CustomerRouteWithChildren
+  '/delivery': typeof DeliveryRouteWithChildren
+  '/finance': typeof FinanceRouteWithChildren
   '/furniture': typeof FurnitureRoute
   '/order-success': typeof OrderSuccessRoute
   '/orders': typeof OrdersRouteWithChildren
@@ -613,6 +680,9 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/seller': typeof SellerRouteWithChildren
   '/success': typeof SuccessRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/support': typeof SupportRouteWithChildren
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/wishlist': typeof WishlistRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -630,6 +700,7 @@ export interface FileRoutesByTo {
   '/finance/login': typeof FinanceLoginRoute
   '/grocery/$type': typeof GroceryTypeRoute
   '/home/$type': typeof HomeTypeRoute
+  '/invoice/$orderId': typeof InvoiceOrderIdRoute
   '/mobiles/$type': typeof MobilesTypeRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
@@ -642,6 +713,7 @@ export interface FileRoutesByTo {
   '/support/login': typeof SupportLoginRoute
   '/toys-gifts/$type': typeof ToysGiftsTypeRoute
   '/toys/$type': typeof ToysTypeRoute
+  '/track-order/$orderId': typeof TrackOrderOrderIdRoute
   '/track/$id': typeof TrackIdRoute
   '/warehouse/dashboard': typeof WarehouseDashboardRoute
   '/warehouse/login': typeof WarehouseLoginRoute
@@ -676,13 +748,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/appliances': typeof AppliancesRouteWithChildren
   '/beauty': typeof BeautyRouteWithChildren
   '/books': typeof BooksRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/customer': typeof CustomerRouteWithChildren
+  '/delivery': typeof DeliveryRouteWithChildren
   '/electronics': typeof ElectronicsRouteWithChildren
   '/fashion': typeof FashionRouteWithChildren
+  '/finance': typeof FinanceRouteWithChildren
   '/furniture': typeof FurnitureRoute
   '/grocery': typeof GroceryRouteWithChildren
   '/home': typeof HomeRouteWithChildren
@@ -695,8 +771,11 @@ export interface FileRoutesById {
   '/seller': typeof SellerRouteWithChildren
   '/sports': typeof SportsRouteWithChildren
   '/success': typeof SuccessRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/support': typeof SupportRouteWithChildren
   '/toys': typeof ToysRouteWithChildren
   '/toys-gifts': typeof ToysGiftsRouteWithChildren
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/wishlist': typeof WishlistRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -717,6 +796,7 @@ export interface FileRoutesById {
   '/finance/login': typeof FinanceLoginRoute
   '/grocery/$type': typeof GroceryTypeRoute
   '/home/$type': typeof HomeTypeRoute
+  '/invoice/$orderId': typeof InvoiceOrderIdRoute
   '/mobiles/$type': typeof MobilesTypeRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
@@ -729,6 +809,7 @@ export interface FileRoutesById {
   '/support/login': typeof SupportLoginRoute
   '/toys-gifts/$type': typeof ToysGiftsTypeRoute
   '/toys/$type': typeof ToysTypeRoute
+  '/track-order/$orderId': typeof TrackOrderOrderIdRoute
   '/track/$id': typeof TrackIdRoute
   '/warehouse/dashboard': typeof WarehouseDashboardRoute
   '/warehouse/login': typeof WarehouseLoginRoute
@@ -764,13 +845,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/appliances'
     | '/beauty'
     | '/books'
     | '/cart'
     | '/checkout'
+    | '/customer'
+    | '/delivery'
     | '/electronics'
     | '/fashion'
+    | '/finance'
     | '/furniture'
     | '/grocery'
     | '/home'
@@ -783,8 +868,11 @@ export interface FileRouteTypes {
     | '/seller'
     | '/sports'
     | '/success'
+    | '/super-admin'
+    | '/support'
     | '/toys'
     | '/toys-gifts'
+    | '/warehouse'
     | '/wishlist'
     | '/admin/dashboard'
     | '/admin/login'
@@ -805,6 +893,7 @@ export interface FileRouteTypes {
     | '/finance/login'
     | '/grocery/$type'
     | '/home/$type'
+    | '/invoice/$orderId'
     | '/mobiles/$type'
     | '/orders/$id'
     | '/product/$id'
@@ -817,6 +906,7 @@ export interface FileRouteTypes {
     | '/support/login'
     | '/toys-gifts/$type'
     | '/toys/$type'
+    | '/track-order/$orderId'
     | '/track/$id'
     | '/warehouse/dashboard'
     | '/warehouse/login'
@@ -850,8 +940,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/cart'
     | '/checkout'
+    | '/customer'
+    | '/delivery'
+    | '/finance'
     | '/furniture'
     | '/order-success'
     | '/orders'
@@ -860,6 +954,9 @@ export interface FileRouteTypes {
     | '/search'
     | '/seller'
     | '/success'
+    | '/super-admin'
+    | '/support'
+    | '/warehouse'
     | '/wishlist'
     | '/admin/dashboard'
     | '/admin/login'
@@ -877,6 +974,7 @@ export interface FileRouteTypes {
     | '/finance/login'
     | '/grocery/$type'
     | '/home/$type'
+    | '/invoice/$orderId'
     | '/mobiles/$type'
     | '/orders/$id'
     | '/product/$id'
@@ -889,6 +987,7 @@ export interface FileRouteTypes {
     | '/support/login'
     | '/toys-gifts/$type'
     | '/toys/$type'
+    | '/track-order/$orderId'
     | '/track/$id'
     | '/warehouse/dashboard'
     | '/warehouse/login'
@@ -922,13 +1021,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/appliances'
     | '/beauty'
     | '/books'
     | '/cart'
     | '/checkout'
+    | '/customer'
+    | '/delivery'
     | '/electronics'
     | '/fashion'
+    | '/finance'
     | '/furniture'
     | '/grocery'
     | '/home'
@@ -941,8 +1044,11 @@ export interface FileRouteTypes {
     | '/seller'
     | '/sports'
     | '/success'
+    | '/super-admin'
+    | '/support'
     | '/toys'
     | '/toys-gifts'
+    | '/warehouse'
     | '/wishlist'
     | '/admin/dashboard'
     | '/admin/login'
@@ -963,6 +1069,7 @@ export interface FileRouteTypes {
     | '/finance/login'
     | '/grocery/$type'
     | '/home/$type'
+    | '/invoice/$orderId'
     | '/mobiles/$type'
     | '/orders/$id'
     | '/product/$id'
@@ -975,6 +1082,7 @@ export interface FileRouteTypes {
     | '/support/login'
     | '/toys-gifts/$type'
     | '/toys/$type'
+    | '/track-order/$orderId'
     | '/track/$id'
     | '/warehouse/dashboard'
     | '/warehouse/login'
@@ -1009,13 +1117,17 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AppliancesRoute: typeof AppliancesRouteWithChildren
   BeautyRoute: typeof BeautyRouteWithChildren
   BooksRoute: typeof BooksRouteWithChildren
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
+  CustomerRoute: typeof CustomerRouteWithChildren
+  DeliveryRoute: typeof DeliveryRouteWithChildren
   ElectronicsRoute: typeof ElectronicsRouteWithChildren
   FashionRoute: typeof FashionRouteWithChildren
+  FinanceRoute: typeof FinanceRouteWithChildren
   FurnitureRoute: typeof FurnitureRoute
   GroceryRoute: typeof GroceryRouteWithChildren
   HomeRoute: typeof HomeRouteWithChildren
@@ -1028,26 +1140,17 @@ export interface RootRouteChildren {
   SellerRoute: typeof SellerRouteWithChildren
   SportsRoute: typeof SportsRouteWithChildren
   SuccessRoute: typeof SuccessRoute
+  SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  SupportRoute: typeof SupportRouteWithChildren
   ToysRoute: typeof ToysRouteWithChildren
   ToysGiftsRoute: typeof ToysGiftsRouteWithChildren
+  WarehouseRoute: typeof WarehouseRouteWithChildren
   WishlistRoute: typeof WishlistRoute
-  AdminDashboardRoute: typeof AdminDashboardRoute
-  AdminLoginRoute: typeof AdminLoginRoute
   CategoryNameRoute: typeof CategoryNameRoute
-  CustomerDashboardRoute: typeof CustomerDashboardRoute
-  CustomerLoginRoute: typeof CustomerLoginRoute
-  DeliveryDashboardRoute: typeof DeliveryDashboardRoute
-  DeliveryLoginRoute: typeof DeliveryLoginRoute
-  FinanceDashboardRoute: typeof FinanceDashboardRoute
-  FinanceLoginRoute: typeof FinanceLoginRoute
+  InvoiceOrderIdRoute: typeof InvoiceOrderIdRoute
   ProductIdRoute: typeof ProductIdRoute
-  SuperAdminDashboardRoute: typeof SuperAdminDashboardRoute
-  SuperAdminLoginRoute: typeof SuperAdminLoginRoute
-  SupportDashboardRoute: typeof SupportDashboardRoute
-  SupportLoginRoute: typeof SupportLoginRoute
+  TrackOrderOrderIdRoute: typeof TrackOrderOrderIdRoute
   TrackIdRoute: typeof TrackIdRoute
-  WarehouseDashboardRoute: typeof WarehouseDashboardRoute
-  WarehouseLoginRoute: typeof WarehouseLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1057,6 +1160,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/appliances': {
@@ -1094,6 +1204,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/customer': {
+      id: '/customer'
+      path: '/customer'
+      fullPath: '/customer'
+      preLoaderRoute: typeof CustomerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery': {
+      id: '/delivery'
+      path: '/delivery'
+      fullPath: '/delivery'
+      preLoaderRoute: typeof DeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/electronics': {
       id: '/electronics'
       path: '/electronics'
@@ -1106,6 +1230,13 @@ declare module '@tanstack/react-router' {
       path: '/fashion'
       fullPath: '/fashion'
       preLoaderRoute: typeof FashionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/furniture': {
@@ -1192,6 +1323,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/toys': {
       id: '/toys'
       path: '/toys'
@@ -1206,6 +1351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToysGiftsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/warehouse': {
+      id: '/warehouse'
+      path: '/warehouse'
+      fullPath: '/warehouse'
+      preLoaderRoute: typeof WarehouseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wishlist': {
       id: '/wishlist'
       path: '/wishlist'
@@ -1215,17 +1367,17 @@ declare module '@tanstack/react-router' {
     }
     '/admin/dashboard': {
       id: '/admin/dashboard'
-      path: '/admin/dashboard'
+      path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/login': {
       id: '/admin/login'
-      path: '/admin/login'
+      path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/appliances/': {
       id: '/appliances/'
@@ -1278,31 +1430,31 @@ declare module '@tanstack/react-router' {
     }
     '/customer/dashboard': {
       id: '/customer/dashboard'
-      path: '/customer/dashboard'
+      path: '/dashboard'
       fullPath: '/customer/dashboard'
       preLoaderRoute: typeof CustomerDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CustomerRoute
     }
     '/customer/login': {
       id: '/customer/login'
-      path: '/customer/login'
+      path: '/login'
       fullPath: '/customer/login'
       preLoaderRoute: typeof CustomerLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CustomerRoute
     }
     '/delivery/dashboard': {
       id: '/delivery/dashboard'
-      path: '/delivery/dashboard'
+      path: '/dashboard'
       fullPath: '/delivery/dashboard'
       preLoaderRoute: typeof DeliveryDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DeliveryRoute
     }
     '/delivery/login': {
       id: '/delivery/login'
-      path: '/delivery/login'
+      path: '/login'
       fullPath: '/delivery/login'
       preLoaderRoute: typeof DeliveryLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DeliveryRoute
     }
     '/electronics/': {
       id: '/electronics/'
@@ -1355,17 +1507,17 @@ declare module '@tanstack/react-router' {
     }
     '/finance/dashboard': {
       id: '/finance/dashboard'
-      path: '/finance/dashboard'
+      path: '/dashboard'
       fullPath: '/finance/dashboard'
       preLoaderRoute: typeof FinanceDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof FinanceRoute
     }
     '/finance/login': {
       id: '/finance/login'
-      path: '/finance/login'
+      path: '/login'
       fullPath: '/finance/login'
       preLoaderRoute: typeof FinanceLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof FinanceRoute
     }
     '/grocery/': {
       id: '/grocery/'
@@ -1394,6 +1546,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/home/$type'
       preLoaderRoute: typeof HomeTypeRouteImport
       parentRoute: typeof HomeRoute
+    }
+    '/invoice/$orderId': {
+      id: '/invoice/$orderId'
+      path: '/invoice/$orderId'
+      fullPath: '/invoice/$orderId'
+      preLoaderRoute: typeof InvoiceOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/mobiles/': {
       id: '/mobiles/'
@@ -1453,31 +1612,31 @@ declare module '@tanstack/react-router' {
     }
     '/super-admin/dashboard': {
       id: '/super-admin/dashboard'
-      path: '/super-admin/dashboard'
+      path: '/dashboard'
       fullPath: '/super-admin/dashboard'
       preLoaderRoute: typeof SuperAdminDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/login': {
       id: '/super-admin/login'
-      path: '/super-admin/login'
+      path: '/login'
       fullPath: '/super-admin/login'
       preLoaderRoute: typeof SuperAdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SuperAdminRoute
     }
     '/support/dashboard': {
       id: '/support/dashboard'
-      path: '/support/dashboard'
+      path: '/dashboard'
       fullPath: '/support/dashboard'
       preLoaderRoute: typeof SupportDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SupportRoute
     }
     '/support/login': {
       id: '/support/login'
-      path: '/support/login'
+      path: '/login'
       fullPath: '/support/login'
       preLoaderRoute: typeof SupportLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SupportRoute
     }
     '/toys-gifts/': {
       id: '/toys-gifts/'
@@ -1507,6 +1666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToysTypeRouteImport
       parentRoute: typeof ToysRoute
     }
+    '/track-order/$orderId': {
+      id: '/track-order/$orderId'
+      path: '/track-order/$orderId'
+      fullPath: '/track-order/$orderId'
+      preLoaderRoute: typeof TrackOrderOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track/$id': {
       id: '/track/$id'
       path: '/track/$id'
@@ -1516,17 +1682,17 @@ declare module '@tanstack/react-router' {
     }
     '/warehouse/dashboard': {
       id: '/warehouse/dashboard'
-      path: '/warehouse/dashboard'
+      path: '/dashboard'
       fullPath: '/warehouse/dashboard'
       preLoaderRoute: typeof WarehouseDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/login': {
       id: '/warehouse/login'
-      path: '/warehouse/login'
+      path: '/login'
       fullPath: '/warehouse/login'
       preLoaderRoute: typeof WarehouseLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/appliances/brand/$brand': {
       id: '/appliances/brand/$brand'
@@ -1643,6 +1809,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminLoginRoute: AdminLoginRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface AppliancesRouteChildren {
   AppliancesTypeRoute: typeof AppliancesTypeRoute
   AppliancesIndexRoute: typeof AppliancesIndexRoute
@@ -1687,6 +1865,34 @@ const BooksRouteChildren: BooksRouteChildren = {
 }
 
 const BooksRouteWithChildren = BooksRoute._addFileChildren(BooksRouteChildren)
+
+interface CustomerRouteChildren {
+  CustomerDashboardRoute: typeof CustomerDashboardRoute
+  CustomerLoginRoute: typeof CustomerLoginRoute
+}
+
+const CustomerRouteChildren: CustomerRouteChildren = {
+  CustomerDashboardRoute: CustomerDashboardRoute,
+  CustomerLoginRoute: CustomerLoginRoute,
+}
+
+const CustomerRouteWithChildren = CustomerRoute._addFileChildren(
+  CustomerRouteChildren,
+)
+
+interface DeliveryRouteChildren {
+  DeliveryDashboardRoute: typeof DeliveryDashboardRoute
+  DeliveryLoginRoute: typeof DeliveryLoginRoute
+}
+
+const DeliveryRouteChildren: DeliveryRouteChildren = {
+  DeliveryDashboardRoute: DeliveryDashboardRoute,
+  DeliveryLoginRoute: DeliveryLoginRoute,
+}
+
+const DeliveryRouteWithChildren = DeliveryRoute._addFileChildren(
+  DeliveryRouteChildren,
+)
 
 interface ElectronicsRouteChildren {
   ElectronicsTypeRoute: typeof ElectronicsTypeRoute
@@ -1764,6 +1970,19 @@ const FashionRouteChildren: FashionRouteChildren = {
 
 const FashionRouteWithChildren =
   FashionRoute._addFileChildren(FashionRouteChildren)
+
+interface FinanceRouteChildren {
+  FinanceDashboardRoute: typeof FinanceDashboardRoute
+  FinanceLoginRoute: typeof FinanceLoginRoute
+}
+
+const FinanceRouteChildren: FinanceRouteChildren = {
+  FinanceDashboardRoute: FinanceDashboardRoute,
+  FinanceLoginRoute: FinanceLoginRoute,
+}
+
+const FinanceRouteWithChildren =
+  FinanceRoute._addFileChildren(FinanceRouteChildren)
 
 interface GroceryRouteChildren {
   GroceryTypeRoute: typeof GroceryTypeRoute
@@ -1848,6 +2067,33 @@ const SportsRouteChildren: SportsRouteChildren = {
 const SportsRouteWithChildren =
   SportsRoute._addFileChildren(SportsRouteChildren)
 
+interface SuperAdminRouteChildren {
+  SuperAdminDashboardRoute: typeof SuperAdminDashboardRoute
+  SuperAdminLoginRoute: typeof SuperAdminLoginRoute
+}
+
+const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminDashboardRoute: SuperAdminDashboardRoute,
+  SuperAdminLoginRoute: SuperAdminLoginRoute,
+}
+
+const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
+  SuperAdminRouteChildren,
+)
+
+interface SupportRouteChildren {
+  SupportDashboardRoute: typeof SupportDashboardRoute
+  SupportLoginRoute: typeof SupportLoginRoute
+}
+
+const SupportRouteChildren: SupportRouteChildren = {
+  SupportDashboardRoute: SupportDashboardRoute,
+  SupportLoginRoute: SupportLoginRoute,
+}
+
+const SupportRouteWithChildren =
+  SupportRoute._addFileChildren(SupportRouteChildren)
+
 interface ToysRouteChildren {
   ToysTypeRoute: typeof ToysTypeRoute
   ToysIndexRoute: typeof ToysIndexRoute
@@ -1878,15 +2124,33 @@ const ToysGiftsRouteWithChildren = ToysGiftsRoute._addFileChildren(
   ToysGiftsRouteChildren,
 )
 
+interface WarehouseRouteChildren {
+  WarehouseDashboardRoute: typeof WarehouseDashboardRoute
+  WarehouseLoginRoute: typeof WarehouseLoginRoute
+}
+
+const WarehouseRouteChildren: WarehouseRouteChildren = {
+  WarehouseDashboardRoute: WarehouseDashboardRoute,
+  WarehouseLoginRoute: WarehouseLoginRoute,
+}
+
+const WarehouseRouteWithChildren = WarehouseRoute._addFileChildren(
+  WarehouseRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AppliancesRoute: AppliancesRouteWithChildren,
   BeautyRoute: BeautyRouteWithChildren,
   BooksRoute: BooksRouteWithChildren,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
+  CustomerRoute: CustomerRouteWithChildren,
+  DeliveryRoute: DeliveryRouteWithChildren,
   ElectronicsRoute: ElectronicsRouteWithChildren,
   FashionRoute: FashionRouteWithChildren,
+  FinanceRoute: FinanceRouteWithChildren,
   FurnitureRoute: FurnitureRoute,
   GroceryRoute: GroceryRouteWithChildren,
   HomeRoute: HomeRouteWithChildren,
@@ -1899,26 +2163,17 @@ const rootRouteChildren: RootRouteChildren = {
   SellerRoute: SellerRouteWithChildren,
   SportsRoute: SportsRouteWithChildren,
   SuccessRoute: SuccessRoute,
+  SuperAdminRoute: SuperAdminRouteWithChildren,
+  SupportRoute: SupportRouteWithChildren,
   ToysRoute: ToysRouteWithChildren,
   ToysGiftsRoute: ToysGiftsRouteWithChildren,
+  WarehouseRoute: WarehouseRouteWithChildren,
   WishlistRoute: WishlistRoute,
-  AdminDashboardRoute: AdminDashboardRoute,
-  AdminLoginRoute: AdminLoginRoute,
   CategoryNameRoute: CategoryNameRoute,
-  CustomerDashboardRoute: CustomerDashboardRoute,
-  CustomerLoginRoute: CustomerLoginRoute,
-  DeliveryDashboardRoute: DeliveryDashboardRoute,
-  DeliveryLoginRoute: DeliveryLoginRoute,
-  FinanceDashboardRoute: FinanceDashboardRoute,
-  FinanceLoginRoute: FinanceLoginRoute,
+  InvoiceOrderIdRoute: InvoiceOrderIdRoute,
   ProductIdRoute: ProductIdRoute,
-  SuperAdminDashboardRoute: SuperAdminDashboardRoute,
-  SuperAdminLoginRoute: SuperAdminLoginRoute,
-  SupportDashboardRoute: SupportDashboardRoute,
-  SupportLoginRoute: SupportLoginRoute,
+  TrackOrderOrderIdRoute: TrackOrderOrderIdRoute,
   TrackIdRoute: TrackIdRoute,
-  WarehouseDashboardRoute: WarehouseDashboardRoute,
-  WarehouseLoginRoute: WarehouseLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

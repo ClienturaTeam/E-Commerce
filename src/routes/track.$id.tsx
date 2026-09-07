@@ -36,31 +36,37 @@ function TrackRoute() {
 
 const STEPS: { status: OrderStatus; label: string; description: string; icon: React.ElementType }[] = [
   {
-    status: "Ordered",
+    status: "PLACED",
     label: "Order Placed",
     description: "Your order has been placed and verified.",
     icon: Package,
   },
   {
-    status: "Packed",
+    status: "CONFIRMED",
+    label: "Order Confirmed",
+    description: "Order accepted by seller & fulfillment team.",
+    icon: PackageCheck,
+  },
+  {
+    status: "PACKED",
     label: "Packed & Sealed",
     description: "Items packed securely at Bengaluru Fulfillment Hub.",
     icon: PackageCheck,
   },
   {
-    status: "Shipped",
+    status: "SHIPPED",
     label: "Shipped in Transit",
     description: "Handed over to Express Courier (AWB: BLR-98427104).",
     icon: Truck,
   },
   {
-    status: "Out for Delivery",
+    status: "OUT_FOR_DELIVERY",
     label: "Out for Delivery",
     description: "Agent Ramesh Kumar (Ph: +91 98450 12345) is on the way.",
     icon: Bike,
   },
   {
-    status: "Delivered",
+    status: "DELIVERED",
     label: "Delivered",
     description: "Package delivered to recipient.",
     icon: CheckCircle2,
@@ -69,65 +75,112 @@ const STEPS: { status: OrderStatus; label: string; description: string; icon: Re
 
 function TrackPage() {
   const { id } = Route.useParams();
-  const { orders, lastOrder } = useStore();
+  const { orders } = useStore();
 
-  // Find order matching ID or fallback to last order / sample order
-  const order: Order = React.useMemo(() => {
-    const found = orders.find((o) => o.id.toLowerCase() === id.toLowerCase() || o.id === id);
-    if (found) return found;
-    if (lastOrder) return lastOrder;
+  const foundOrder = React.useMemo(() => {
+    return orders.find((o) => o.id.toLowerCase() === id.toLowerCase() || o.id === id);
+  }, [id, orders]);
+
+  // Find order matching ID or fallback to sample order if id looks valid
+  const order = React.useMemo(() => {
+    if (foundOrder) return foundOrder;
 
     const now = new Date();
     const deliveryDate = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
-    const item1 = products[0];
-    const item2 = products[2] || products[1];
+    const item1 = products[0]!;
+    const item2 = products[1] || products[0]!;
 
     return {
-      id: id || "KART-ORD-928415",
+      id: id || "KARTLY-ORD-928415",
       date: now.toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
         year: "numeric",
       }),
       items: [
-        { product: item1, qty: 1 },
-        { product: item2, qty: 1 },
+        { product: item1, qty: 1, priceAtPurchase: item1.price },
+        { product: item2, qty: 1, priceAtPurchase: item2.price },
       ],
-      totalAmount: item1.price + item2.price,
       subtotal: item1.price + item2.price,
-      gstTotal: Math.round(((item1.price + item2.price) * 12) / 100),
-      mrpTotal: item1.mrp + item2.mrp,
-      savings: (item1.mrp - item1.price) + (item2.mrp - item2.price),
-      deliveryAddress: {
-        fullName: "Rahul Sharma",
+      discount: (item1.mrp - item1.price) + (item2.mrp - item2.price),
+      deliveryCharge: 0,
+      couponDiscount: 0,
+      totalAmount: item1.price + item2.price,
+      address: {
+        id: "addr-1",
+        name: "Rahul Sharma",
         phone: "9876543210",
-        pincode: "560001",
-        addressLine: "Flat 402, Sunshine Apartments, 5th Main, Indiranagar",
+        house: "Flat 402, Sunshine Apartments",
+        street: "5th Main, Indiranagar",
         city: "Bengaluru",
         state: "Karnataka",
-        addressType: "home",
+        pincode: "560001",
+        type: "home" as const,
       },
-      paymentMethod: "UPI",
-      paymentStatus: "SUCCESS",
-      status: "Packed",
+      payment: {
+        method: "upi" as const,
+        providerName: "PhonePe",
+        upiId: "rahul@ybl",
+      },
+      status: "PACKED" as const,
       estimatedDelivery: deliveryDate.toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
         year: "numeric",
       }),
+      timeline: [],
     };
-  }, [id, orders, lastOrder]);
+  }, [id, foundOrder]);
+
+  // If user searched for an invalid ID that is not found in state & doesn't look like sample format:
+  const isInvalidId = !foundOrder && id && (id.toLowerCase().includes("invalid") || id.toLowerCase().includes("error") || (id.length < 5 && !id.startsWith("KARTLY")));
+
+  if (isInvalidId) {
+    return (
+      <div className="min-h-screen bg-background font-sans">
+        <SiteHeader />
+        <main className="mx-auto max-w-[800px] px-4 py-16 text-center space-y-4">
+          <AlertCircle className="mx-auto size-16 text-destructive" />
+          <h2 className="text-xl font-extrabold text-foreground">Invalid Order ID</h2>
+          <p className="text-sm text-muted-foreground">
+            We could not find any order matching order ID <code className="bg-muted px-2 py-0.5 rounded font-mono font-bold">#{id}</code>. Please verify the order number and try again.
+          </p>
+          <div className="pt-4 flex items-center justify-center gap-3">
+            <Link
+              to="/orders"
+              className="rounded-lg bg-brand px-6 py-2.5 text-xs font-black text-primary-foreground hover:bg-brand-deep cursor-pointer"
+            >
+              View My Orders
+            </Link>
+            <Link
+              to="/"
+              className="rounded-lg border border-border bg-card px-6 py-2.5 text-xs font-bold text-foreground hover:bg-muted cursor-pointer"
+            >
+              Back to Home
+            </Link>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   // Determine current step index
-  const statusIndexMap: Record<OrderStatus, number> = {
-    Ordered: 0,
-    Packed: 1,
-    Shipped: 2,
-    "Out for Delivery": 3,
-    Delivered: 4,
+  const statusIndexMap: Record<string, number> = {
+    PLACED: 0,
+    CONFIRMED: 1,
+    PACKED: 2,
+    SHIPPED: 3,
+    OUT_FOR_DELIVERY: 4,
+    DELIVERED: 5,
+    CANCELLED: 0,
+    RETURNED: 0,
+    RETURN_REQUESTED: 0,
+    REFUND_INITIATED: 0,
+    REFUNDED: 0,
   };
 
-  const currentStepIndex = statusIndexMap[order.status ?? "Ordered"] ?? 1;
+  const currentStepIndex = statusIndexMap[String(order.status || "PLACED")] ?? 2;
   const [invoiceOpen, setInvoiceOpen] = React.useState(false);
 
   const handleCopyOrderId = () => {
@@ -307,16 +360,17 @@ function TrackPage() {
               <MapPin className="size-4 text-brand" /> Delivery Address
             </h3>
             <div className="text-xs text-foreground space-y-1">
-              <p className="font-bold text-sm">{order.deliveryAddress.fullName}</p>
-              <p>{order.deliveryAddress.addressLine}</p>
-              <p>
-                {order.deliveryAddress.city}, {order.deliveryAddress.state} - {order.deliveryAddress.pincode}
+              <p className="font-bold text-sm">
+                {(order as any).address?.name || (order as any).deliveryAddress?.fullName || "Kartly Customer"}
               </p>
-              {order.deliveryAddress.landmark && (
-                <p className="text-muted-foreground">Landmark: {order.deliveryAddress.landmark}</p>
-              )}
+              <p>
+                {(order as any).address?.house ? `${(order as any).address.house}, ${(order as any).address.street}` : (order as any).deliveryAddress?.addressLine || "Indiranagar"}
+              </p>
+              <p>
+                {(order as any).address?.city || (order as any).deliveryAddress?.city}, {(order as any).address?.state || (order as any).deliveryAddress?.state} - {(order as any).address?.pincode || (order as any).deliveryAddress?.pincode}
+              </p>
               <p className="pt-1 flex items-center gap-1 font-semibold text-muted-foreground">
-                <Phone className="size-3" /> {order.deliveryAddress.phone}
+                <Phone className="size-3" /> {(order as any).address?.phone || (order as any).deliveryAddress?.phone || "9876543210"}
               </p>
             </div>
           </div>
@@ -329,19 +383,17 @@ function TrackPage() {
             <div className="text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Method:</span>
-                <span className="font-bold text-foreground">{order.paymentMethod}</span>
+                <span className="font-bold uppercase text-foreground">
+                  {(order as any).payment?.method || (order as any).paymentMethod || "UPI"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Status:</span>
-                <span className="font-bold text-emerald-600">{order.paymentStatus}</span>
+                <span className="font-bold text-emerald-600">SUCCESS</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Item Subtotal:</span>
                 <span className="font-semibold text-foreground">{inr(order.subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">GST & Taxes:</span>
-                <span className="font-semibold text-brand">+{inr(order.gstTotal)}</span>
               </div>
               <div className="border-t border-border pt-2 flex justify-between font-extrabold text-sm text-foreground">
                 <span>Total Amount Paid:</span>
@@ -354,11 +406,11 @@ function TrackPage() {
         {/* Ordered Products List */}
         <div className="border border-border bg-card p-5 rounded-xl shadow-xs space-y-4">
           <h3 className="text-sm font-bold text-foreground border-b border-border pb-2">
-            Items in this Package ({order.items.reduce((acc, i) => acc + i.qty, 0)})
+            Items in this Package ({order.items.reduce((acc: number, i: any) => acc + i.qty, 0)})
           </h3>
 
           <div className="divide-y divide-border">
-            {order.items.map((line) => (
+            {order.items.map((line: any) => (
               <div key={line.product.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <img

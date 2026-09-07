@@ -9,6 +9,30 @@ import type {
   PaymentDetails,
   UserProfile,
 } from "./types";
+import {
+  fetchCartApi,
+  addToCartApi,
+  updateCartItemApi,
+  removeCartItemApi,
+  clearCartApi,
+  fetchAddressesApi,
+  addAddressApi,
+  deleteAddressApi,
+  fetchOrdersApi,
+  placeOrderApi,
+  fetchWishlistApi,
+  toggleWishlistApi,
+  fetchMeApi,
+} from "@/lib/api";
+
+export type {
+  Address,
+  Coupon,
+  Order,
+  OrderStatus,
+  PaymentDetails,
+  UserProfile,
+} from "./types";
 
 export type CartLine = { product: Product; qty: number };
 
@@ -180,6 +204,10 @@ export type StoreState = {
   setPincode: (v: string) => void;
   savedAddress: DeliveryAddress | null;
   setSavedAddress: (addr: DeliveryAddress | null) => void;
+
+  // Custom Product Reviews
+  customReviews: Record<string, any[]>;
+  addProductReview: (productId: string, rating: number, comment: string, userName?: string) => void;
 };
 
 const StoreContext = React.createContext<StoreState | null>(null);
@@ -278,7 +306,70 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setSavedAddress(safeRead<DeliveryAddress | null>("antigravity_address", null));
     setAddresses(safeRead<Address[]>("kartly.addresses", INITIAL_ADDRESSES));
     setOrders(safeRead<Order[]>("kartly.orders", INITIAL_ORDERS));
+    setCustomReviews(safeRead<Record<string, any[]>>("kartly.custom_reviews", {}));
+
+    // Async sync with Express Backend APIs
+    async function syncBackendData() {
+      try {
+        const cartRes = await fetchCartApi();
+        if (cartRes?.success && Array.isArray(cartRes.cart) && cartRes.cart.length > 0) {
+          const apiCart = cartRes.cart.map(normalizeProductLine).filter((i): i is CartLine => Boolean(i));
+          if (apiCart.length > 0) setCart(apiCart);
+        }
+      } catch (err) {}
+
+      try {
+        const orderRes = await fetchOrdersApi();
+        if (orderRes?.success && Array.isArray(orderRes.orders)) {
+          setOrders(orderRes.orders);
+        }
+      } catch (err) {}
+
+      try {
+        const addrRes = await fetchAddressesApi();
+        if (addrRes?.success && Array.isArray(addrRes.addresses) && addrRes.addresses.length > 0) {
+          setAddresses(addrRes.addresses);
+        }
+      } catch (err) {}
+
+      try {
+        const wishRes = await fetchWishlistApi();
+        if (wishRes?.success && Array.isArray(wishRes.wishlist)) {
+          setWishlist(wishRes.wishlist);
+        }
+      } catch (err) {}
+    }
+
+    syncBackendData();
   }, []);
+
+  const [customReviews, setCustomReviews] = React.useState<Record<string, any[]>>({});
+
+  const addProductReview = React.useCallback((productId: string, rating: number, comment: string, userName?: string) => {
+    if (!productId || !comment.trim()) return;
+    const author = userName || user?.name || "Verified Customer";
+    const newRev = {
+      id: `rev-${Date.now()}`,
+      userName: author,
+      rating,
+      comment: comment.trim(),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      verified: true,
+    };
+
+    setCustomReviews((prev) => {
+      const existing = prev[productId] || [];
+      const updated = { ...prev, [productId]: [newRev, ...existing] };
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("kartly.custom_reviews", JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+
+    toast.success("Review submitted successfully!", { description: "Thank you for your feedback!" });
+  }, [user]);
 
   // Save to localStorage
   React.useEffect(() => {
@@ -434,6 +525,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       return updated;
     });
+
+    addToCartApi(p, 1).catch((err) => console.error("addToCartApi error:", err));
     toast.success("Added to cart", { description: p.title || (p as any).name });
   }, []);
 
@@ -469,15 +562,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ? current.filter((l) => l && l.product && l.product.id !== id)
         : current.map((l) => (l && l.product && l.product.id === id ? { ...l, qty } : l));
     });
+    updateCartItemApi(id, qty).catch((err) => console.error("updateCartItemApi error:", err));
   }, []);
 
   const removeFromCart = React.useCallback((id: string) => {
     setCart((prev) => (Array.isArray(prev) ? prev.filter((l) => l && l.product && l.product.id !== id) : []));
+    removeCartItemApi(id).catch((err) => console.error("removeCartItemApi error:", err));
     toast("Removed from cart");
   }, []);
 
   const clearCart = React.useCallback(() => {
     setCart([]);
+    clearCartApi().catch((err) => console.error("clearCartApi error:", err));
     try {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("cartItems");
@@ -497,6 +593,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       toast(has ? "Removed from wishlist" : "Saved to wishlist", { description: p.title });
       return has ? current.filter((id) => id !== p.id) : [...current, p.id];
     });
+    toggleWishlistApi(p.id).catch((err) => console.error("toggleWishlistApi error:", err));
   }, []);
 
   const addRecentlyViewed = React.useCallback((id: string) => {
@@ -513,7 +610,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const id = `addr-${Date.now()}`;
     const fullAddr: Address = { ...newAddr, id };
     setAddresses((prev) => {
-      if (newAddr.isDefault) {
+      if ((newAddr as any).isDefault) {
         return prev.map((a) => ({ ...a, isDefault: false })).concat(fullAddr);
       }
       return [...prev, fullAddr];
@@ -595,13 +692,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         openAuthModal("Please log in to complete your purchase.");
         return null;
       }
-      if (safeCart.length === 0) {
-        toast.error("Your cart is empty!");
+
+      const orderItems: CartLine[] =
+        buyNowProduct && buyNowProduct.product && buyNowProduct.product.id
+          ? [buyNowProduct]
+          : safeCart;
+
+      if (orderItems.length === 0) {
+        toast.error("No items found to place order!");
         return null;
       }
 
       const selectedAddress =
-        addresses.find((a) => a.id === addressId) || addresses[0] || INITIAL_ADDRESSES[0];
+        addresses.find((a) => a.id === addressId) || addresses[0] || INITIAL_ADDRESSES[0]!;
 
       const now = new Date();
       const orderDate = now.toLocaleDateString("en-IN", {
@@ -610,7 +713,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         year: "numeric",
       });
 
-      const deliveryDateObj = new Date(now.setDate(now.getDate() + 3));
+      const deliveryDateObj = new Date();
+      deliveryDateObj.setDate(deliveryDateObj.getDate() + 3);
       const estDelivery = deliveryDateObj.toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
@@ -622,19 +726,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         .toString()
         .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${randomNum}`;
 
-      const finalAmount = cartTotal - couponDiscountAmount;
+      const itemsSubtotal = orderItems.reduce((n, l) => n + (l.qty || 1) * (l.product.price || 0), 0);
+      const itemsMrpTotal = orderItems.reduce((n, l) => n + (l.qty || 1) * (l.product.mrp || 0), 0);
+      const itemsDeliveryCharge = itemsSubtotal > 500 ? 0 : 40;
+      const finalAmount = Math.max(0, itemsSubtotal - couponDiscountAmount + itemsDeliveryCharge);
 
       const newOrder: Order = {
         id: orderId,
         date: orderDate,
-        items: safeCart.map((l) => ({
+        items: orderItems.map((l) => ({
           product: l.product,
-          qty: l.qty,
+          qty: l.qty || 1,
           priceAtPurchase: l.product.price,
         })),
-        subtotal: cartSubtotal,
-        discount: cartMrpTotal - cartSubtotal,
-        deliveryCharge: deliveryFee,
+        subtotal: itemsSubtotal,
+        discount: itemsMrpTotal - itemsSubtotal,
+        deliveryCharge: itemsDeliveryCharge,
         couponDiscount: couponDiscountAmount,
         totalAmount: finalAmount,
         address: selectedAddress,
@@ -652,12 +759,146 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       };
 
       setOrders((prev) => [newOrder, ...prev]);
-      clearCart();
+
+      // Persist last created order ID for payment & success page hydration
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("kartly.lastOrderId", orderId);
+        }
+      } catch (e) {
+        console.error("Error setting lastOrderId in localStorage", e);
+      }
+
+      // Save order to Express REST API Backend DB
+      placeOrderApi({
+        items: orderItems,
+        address: selectedAddress,
+        paymentMethod: payment.method || "upi",
+        paymentDetails: payment,
+        totals: {
+          subtotal: itemsSubtotal,
+          mrpTotal: itemsMrpTotal,
+          discount: itemsMrpTotal - itemsSubtotal,
+          deliveryFee: itemsDeliveryCharge,
+          couponDiscount: couponDiscountAmount,
+          finalAmount,
+        },
+      }).catch((err) => console.error("placeOrderApi error:", err));
+
+      if (buyNowProduct) {
+        clearBuyNow();
+      } else {
+        clearCart();
+      }
+
       setAppliedCoupon(null);
-      toast.success("Order placed successfully!", { description: `Order ID: ${orderId}` });
+      toast.success("Order created successfully!", { description: `Order ID: ${orderId}` });
+
+      // Trigger Real-Time Order Status Updates Progress Simulation (5s, 10s, 15s, 20s, 25s)
+      setTimeout(() => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId && o.status === "PLACED"
+              ? {
+                  ...o,
+                  status: "CONFIRMED",
+                  timeline: o.timeline.map((t: any) =>
+                    t.status === "PLACED" || t.status === "CONFIRMED"
+                      ? { ...t, completed: true, time: t.completed ? t.time : "Just now" }
+                      : t
+                  ),
+                }
+              : o
+          )
+        );
+        toast.success("Order Confirmed! ✅", {
+          description: `Seller accepted your order #${orderId}`,
+        });
+      }, 5000);
+
+      setTimeout(() => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId && (o.status === "CONFIRMED" || o.status === "PLACED")
+              ? {
+                  ...o,
+                  status: "PACKED",
+                  timeline: o.timeline.map((t: any) =>
+                    t.status === "PLACED" || t.status === "CONFIRMED" || t.status === "PACKED"
+                      ? { ...t, completed: true, time: t.completed ? t.time : "Just now" }
+                      : t
+                  ),
+                }
+              : o
+          )
+        );
+        toast.success("Order Packed & Sealed! 📦", {
+          description: `Items for #${orderId} packed at fulfillment center.`,
+        });
+      }, 10000);
+
+      setTimeout(() => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId && (o.status === "PACKED" || o.status === "CONFIRMED" || o.status === "PLACED")
+              ? {
+                  ...o,
+                  status: "SHIPPED",
+                  timeline: o.timeline.map((t: any) =>
+                    t.status === "SHIPPED"
+                      ? { ...t, completed: true, time: "In Transit (Express)" }
+                      : t.completed ? t : { ...t, completed: true }
+                  ),
+                }
+              : o
+          )
+        );
+        toast.info("Order Shipped in Transit! 🚚", {
+          description: `Express courier tracking active for #${orderId}`,
+        });
+      }, 15000);
+
+      setTimeout(() => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId && (o.status === "SHIPPED" || o.status === "PACKED")
+              ? {
+                  ...o,
+                  status: "OUT_FOR_DELIVERY",
+                  timeline: o.timeline.map((t: any) =>
+                    t.status === "OUT_FOR_DELIVERY"
+                      ? { ...t, completed: true, time: "Arriving Today" }
+                      : t.completed ? t : { ...t, completed: true }
+                  ),
+                }
+              : o
+          )
+        );
+        toast.info("Out for Delivery! 🛵", {
+          description: `Delivery agent is arriving soon for #${orderId}`,
+        });
+      }, 20000);
+
+      setTimeout(() => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId && (o.status === "OUT_FOR_DELIVERY" || o.status === "SHIPPED")
+              ? {
+                  ...o,
+                  status: "DELIVERED",
+                  timeline: o.timeline.map((t: any) => ({ ...t, completed: true })),
+                }
+              : o
+          )
+        );
+        toast.success("Order Delivered Successfully! 🎉", {
+          description: `Package for #${orderId} handed to recipient.`,
+        });
+      }, 25000);
+
       return newOrder;
     },
-    [user, safeCart, addresses, cartTotal, cartMrpTotal, cartSubtotal, deliveryFee, couponDiscountAmount, openAuthModal, clearCart]
+    [user, buyNowProduct, safeCart, addresses, couponDiscountAmount, openAuthModal, clearBuyNow, clearCart]
   );
 
   const cancelOrder = React.useCallback((orderId: string, reason: string) => {
@@ -678,8 +919,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           status: "CANCELLED" as OrderStatus,
           cancellationReason: reason,
           cancelledAt: today,
-          refundStatus: o.payment.method !== "cod" ? "Refund Initiated" : undefined,
-          refundAmount: o.payment.method !== "cod" ? o.totalAmount : undefined,
+          refundStatus: o.payment.method !== "cod" ? ("Refund Initiated" as const) : ("Pending" as const),
+          refundAmount: o.payment.method !== "cod" ? o.totalAmount : 0,
           timeline: updatedTimeline,
         };
       })
@@ -711,7 +952,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const statusOrder: OrderStatus[] = ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"];
         const targetIdx = statusOrder.indexOf(newStatus);
 
-        const updatedTimeline = o.timeline.map((t) => {
+        const updatedTimeline = o.timeline.map((t: any) => {
           const idx = statusOrder.indexOf(t.status);
           if (idx !== -1 && targetIdx !== -1) {
             return { ...t, completed: idx <= targetIdx };
@@ -736,68 +977,129 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const targetOrder = orders.find((o) => o.id === orderId);
     if (!targetOrder) return;
 
-    targetOrder.items.forEach((item) => {
+    targetOrder.items.forEach((item: any) => {
       addToCart(item.product);
     });
     setCartOpen(true);
     toast.success("Items reordered & added to cart!");
   }, [orders, addToCart, setCartOpen]);
 
-  const value: StoreState = {
-    query,
-    setQuery,
-    category,
-    setCategory,
-    visibleProducts,
-    cart: safeCart,
-    cartCount,
-    cartTotal,
-    cartMrpTotal,
-    cartSubtotal,
-    cartGstTotal,
-    deliveryFee,
-    addToCart,
-    buyNowProduct,
-    setBuyNowProduct,
-    buyNow,
-    clearBuyNow,
-    setQty,
-    removeFromCart,
-    clearCart,
-    cartOpen,
-    setCartOpen,
-    wishlist,
-    toggleWishlist,
-    recentlyViewed,
-    addRecentlyViewed,
-    user,
-    signIn,
-    signOut,
-    authModalOpen,
-    authModalReason,
-    openAuthModal,
-    closeAuthModal,
-    addresses,
-    addAddress,
-    editAddress,
-    deleteAddress,
-    setDefaultAddress,
-    orders,
-    placeOrder,
-    cancelOrder,
-    requestReturn,
-    updateOrderStatus,
-    rateProduct,
-    reorderItems,
-    appliedCoupon,
-    applyCoupon,
-    removeCoupon,
-    couponDiscountAmount,
-    pincode,
-    setPincode,
-    savedAddress,
-    setSavedAddress,
-  };
+  const value: StoreState = React.useMemo(
+    () => ({
+      query,
+      setQuery,
+      category,
+      setCategory,
+      visibleProducts,
+      cart: safeCart,
+      cartCount,
+      cartTotal,
+      cartMrpTotal,
+      cartSubtotal,
+      cartGstTotal,
+      deliveryFee,
+      addToCart,
+      buyNowProduct,
+      setBuyNowProduct,
+      buyNow,
+      clearBuyNow,
+      setQty,
+      removeFromCart,
+      clearCart,
+      cartOpen,
+      setCartOpen,
+      wishlist,
+      toggleWishlist,
+      recentlyViewed,
+      addRecentlyViewed,
+      user,
+      signIn,
+      signOut,
+      authModalOpen,
+      authModalReason,
+      openAuthModal,
+      closeAuthModal,
+      addresses,
+      addAddress,
+      editAddress,
+      deleteAddress,
+      setDefaultAddress,
+      orders,
+      placeOrder,
+      cancelOrder,
+      requestReturn,
+      updateOrderStatus,
+      rateProduct,
+      reorderItems,
+      appliedCoupon,
+      applyCoupon,
+      removeCoupon,
+      couponDiscountAmount,
+      pincode,
+      setPincode,
+      savedAddress,
+      setSavedAddress,
+      customReviews,
+      addProductReview,
+    }),
+    [
+      query,
+      setQuery,
+      category,
+      setCategory,
+      visibleProducts,
+      safeCart,
+      cartCount,
+      cartTotal,
+      cartMrpTotal,
+      cartSubtotal,
+      cartGstTotal,
+      deliveryFee,
+      addToCart,
+      buyNowProduct,
+      setBuyNowProduct,
+      buyNow,
+      clearBuyNow,
+      setQty,
+      removeFromCart,
+      clearCart,
+      cartOpen,
+      setCartOpen,
+      wishlist,
+      toggleWishlist,
+      recentlyViewed,
+      addRecentlyViewed,
+      user,
+      signIn,
+      signOut,
+      authModalOpen,
+      authModalReason,
+      openAuthModal,
+      closeAuthModal,
+      addresses,
+      addAddress,
+      editAddress,
+      deleteAddress,
+      setDefaultAddress,
+      orders,
+      placeOrder,
+      cancelOrder,
+      requestReturn,
+      updateOrderStatus,
+      rateProduct,
+      reorderItems,
+      appliedCoupon,
+      applyCoupon,
+      removeCoupon,
+      couponDiscountAmount,
+      pincode,
+      setPincode,
+      savedAddress,
+      setSavedAddress,
+      customReviews,
+      addProductReview,
+    ]
+  );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
@@ -805,22 +1107,133 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 export function useStore() {
   const ctx = React.useContext(StoreContext);
   if (!ctx) {
-    throw new Error("useStore must be used within StoreProvider");
+    return {
+      query: "",
+      setQuery: () => {},
+      category: "For You",
+      setCategory: () => {},
+      visibleProducts: products,
+      cart: [],
+      cartCount: 0,
+      cartTotal: 0,
+      cartMrpTotal: 0,
+      cartSubtotal: 0,
+      cartGstTotal: 0,
+      deliveryFee: 0,
+      addToCart: () => {},
+      buyNowProduct: null,
+      setBuyNowProduct: () => {},
+      buyNow: () => {},
+      clearBuyNow: () => {},
+      setQty: () => {},
+      removeFromCart: () => {},
+      clearCart: () => {},
+      cartOpen: false,
+      setCartOpen: () => {},
+      wishlist: [],
+      toggleWishlist: () => {},
+      recentlyViewed: [],
+      addRecentlyViewed: () => {},
+      user: DEFAULT_USER,
+      signIn: () => {},
+      signOut: () => {},
+      authModalOpen: false,
+      authModalReason: "",
+      openAuthModal: () => {},
+      closeAuthModal: () => {},
+      addresses: INITIAL_ADDRESSES,
+      addAddress: () => {},
+      editAddress: () => {},
+      deleteAddress: () => {},
+      setDefaultAddress: () => {},
+      orders: INITIAL_ORDERS,
+      placeOrder: () => null,
+      cancelOrder: () => {},
+      requestReturn: () => {},
+      updateOrderStatus: () => {},
+      rateProduct: () => {},
+      reorderItems: () => {},
+      appliedCoupon: null,
+      applyCoupon: () => false,
+      removeCoupon: () => {},
+      couponDiscountAmount: 0,
+      pincode: "560001",
+      setPincode: () => {},
+      savedAddress: null,
+      setSavedAddress: () => {},
+      customReviews: {},
+      addProductReview: () => {},
+    };
   }
   return ctx;
 }
 
-export function getGstBreakdown(price: number, qty: number) {
+export function getProductGstRate(product?: any): number {
+  if (!product) return 12;
+  let categoryStr = "";
+  if (typeof product === "string") {
+    categoryStr = product;
+  } else if (typeof product === "object") {
+    categoryStr = `${product.category || ""} ${product.subCategory || ""} ${product.title || ""}`;
+  } else if (typeof product === "number") {
+    return product <= 1000 ? 5 : 12;
+  }
+  const cat = categoryStr.toLowerCase();
+
+  if (
+    cat.includes("grocery") ||
+    cat.includes("food") ||
+    cat.includes("supermarket") ||
+    cat.includes("essential") ||
+    cat.includes("organic") ||
+    cat.includes("fruit") ||
+    cat.includes("vegetable")
+  ) {
+    return 5;
+  }
+  if (
+    cat.includes("fashion") ||
+    cat.includes("clothing") ||
+    cat.includes("apparel") ||
+    cat.includes("shirt") ||
+    cat.includes("jeans") ||
+    cat.includes("dress") ||
+    cat.includes("men") ||
+    cat.includes("women") ||
+    cat.includes("kids") ||
+    cat.includes("shoe") ||
+    cat.includes("footwear")
+  ) {
+    return 12;
+  }
+  if (
+    cat.includes("electronics") ||
+    cat.includes("mobile") ||
+    cat.includes("phone") ||
+    cat.includes("appliance") ||
+    cat.includes("laptop") ||
+    cat.includes("tv") ||
+    cat.includes("gadget") ||
+    cat.includes("audio") ||
+    cat.includes("camera")
+  ) {
+    return 18;
+  }
+  return 12;
+}
+
+export function getGstBreakdown(price: number, qty: number, product?: any) {
   const safePrice = price || 0;
   const safeQty = qty || 1;
-  const rate = safePrice <= 1000 ? 5 : 12;
+  const rate = getProductGstRate(product || safePrice);
   const gstAmount = Math.round((safePrice * safeQty * rate) / 100);
   const itemPrice = safePrice * safeQty;
   const totalPrice = itemPrice + gstAmount;
   return { rate, gstAmount, itemPrice, totalPrice };
 }
 
-export function getGstRate(price: number) {
-  return (price || 0) <= 1000 ? 5 : 12;
+export function getGstRate(priceOrProduct: any) {
+  return getProductGstRate(priceOrProduct);
 }
+
 

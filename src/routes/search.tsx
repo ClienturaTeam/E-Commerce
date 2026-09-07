@@ -10,7 +10,7 @@ import { Product } from "@/components/store/catalog";
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      q: (search.q as string) || "",
+      q: (search["q"] as string) || "",
     };
   },
   component: SearchResultsRoute,

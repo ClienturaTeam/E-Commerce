@@ -7,17 +7,17 @@ import { StoreProvider } from "@/components/store/store-context";
 import { EnterpriseAuthProvider, useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 import { toast } from "sonner";
 
+import { RequirePortalAuth } from "@/components/auth/RequirePortalAuth";
+
 export const Route = createFileRoute("/delivery/dashboard")({
   component: DeliveryDashboardRoute,
 });
 
 function DeliveryDashboardRoute() {
   return (
-    <StoreProvider>
-      <EnterpriseAuthProvider>
-        <DeliveryDashboardPage />
-      </EnterpriseAuthProvider>
-    </StoreProvider>
+    <RequirePortalAuth requiredRole="DELIVERY">
+      <DeliveryDashboardPage />
+    </RequirePortalAuth>
   );
 }
 

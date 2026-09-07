@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import * as React from "react";
 import { Store, TrendingUp, ShieldCheck, Truck, Users, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/store/SiteHeader";
@@ -11,12 +11,17 @@ export const Route = createFileRoute("/seller")({
 });
 
 function SellerRoute() {
-  return (
-    <StoreProvider>
-      <SellerPage />
-    </StoreProvider>
-  );
+  const { pathname } = useLocation();
+  if (pathname === "/seller" || pathname === "/seller/") {
+    return (
+      <StoreProvider>
+        <SellerPage />
+      </StoreProvider>
+    );
+  }
+  return <Outlet />;
 }
+
 
 function SellerPage() {
   const [businessName, setBusinessName] = React.useState("");

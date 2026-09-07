@@ -27,11 +27,7 @@ export const Route = createFileRoute("/orders")({
 });
 
 function OrdersRoute() {
-  return (
-    <StoreProvider>
-      <OrdersPage />
-    </StoreProvider>
-  );
+  return <OrdersPage />;
 }
 
 function OrdersPage() {
@@ -63,6 +59,12 @@ function OrdersPage() {
   // Dev Controller toggle
   const [showAdminController, setShowAdminController] = React.useState(false);
 
+  // Safe Orders Array
+  const safeOrders = React.useMemo(() => {
+    if (!Array.isArray(orders)) return [];
+    return orders.filter((o) => Boolean(o && o.id));
+  }, [orders]);
+
   // Require Auth
   React.useEffect(() => {
     if (!user || !user.isAuth) {
@@ -76,20 +78,22 @@ function OrdersPage() {
     let delivered = 0;
     let cancelled = 0;
 
-    orders.forEach((o) => {
-      if (o.status === "DELIVERED") delivered++;
-      else if (o.status === "CANCELLED" || o.status === "RETURNED" || o.status === "REFUNDED") cancelled++;
+    safeOrders.forEach((o) => {
+      const status = o.status || "PLACED";
+      if (status === "DELIVERED") delivered++;
+      else if (status === "CANCELLED" || status === "RETURNED" || status === "REFUNDED") cancelled++;
       else active++;
     });
 
-    return { all: orders.length, active, delivered, cancelled };
-  }, [orders]);
+    return { all: safeOrders.length, active, delivered, cancelled };
+  }, [safeOrders]);
 
   const filteredOrders = React.useMemo(() => {
-    return orders.filter((o) => {
+    return safeOrders.filter((o) => {
       // Tab filter
-      const isDelivered = o.status === "DELIVERED";
-      const isCancelled = o.status === "CANCELLED" || o.status === "RETURNED" || o.status === "REFUNDED";
+      const status = o.status || "PLACED";
+      const isDelivered = status === "DELIVERED";
+      const isCancelled = status === "CANCELLED" || status === "RETURNED" || status === "REFUNDED";
       const isActive = !isDelivered && !isCancelled;
 
       if (activeTab === "active" && !isActive) return false;
@@ -98,17 +102,18 @@ function OrdersPage() {
 
       // Search query
       if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      const matchId = o.id.toLowerCase().includes(q);
-      const matchItem = o.items.some(
-        (item) =>
-          item.product.title.toLowerCase().includes(q) ||
-          item.product.brand.toLowerCase().includes(q)
+      const q = searchQuery.toLowerCase().trim();
+      const matchId = (o.id || "").toLowerCase().includes(q);
+      const items = Array.isArray(o.items) ? o.items : [];
+      const matchItem = items.some(
+        (item: any) =>
+          item?.product?.title?.toLowerCase().includes(q) ||
+          item?.product?.brand?.toLowerCase().includes(q)
       );
 
       return matchId || matchItem;
     });
-  }, [orders, activeTab, searchQuery]);
+  }, [safeOrders, activeTab, searchQuery]);
 
   const handleConfirmCancel = () => {
     if (cancelModalOrderId) {
@@ -270,26 +275,33 @@ function OrdersPage() {
 
                   {/* Order Items */}
                   <div className="space-y-3">
-                    {order.items.map((item) => (
-                      <div key={item.product.id} className="flex items-center gap-3">
-                        <img
-                          src={item.product.image}
-                          alt={item.product.title}
-                          className="size-16 object-contain border border-border rounded-md bg-muted p-1 shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-xs font-bold text-foreground line-clamp-1">
-                            {item.product.title}
-                          </h3>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            Brand: {item.product.brand} · Qty: {item.qty}
-                          </p>
-                          <p className="text-xs font-bold text-foreground mt-0.5">
-                            {inr(item.priceAtPurchase)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {Array.isArray(order.items) && order.items.length > 0 ? (
+                      order.items.map((item: any, idx: number) => {
+                        const prod = item?.product || {};
+                        return (
+                          <div key={prod.id || idx} className="flex items-center gap-3">
+                            <img
+                              src={prod.image || "https://picsum.photos/100"}
+                              alt={prod.title || "Product"}
+                              className="size-16 object-contain border border-border rounded-md bg-muted p-1 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-xs font-bold text-foreground line-clamp-1">
+                                {prod.title || "Ordered Item"}
+                              </h3>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                Brand: {prod.brand || "Kartly"} · Qty: {item?.qty || 1}
+                              </p>
+                              <p className="text-xs font-bold text-foreground mt-0.5">
+                                {inr(item?.priceAtPurchase || prod.price || 0)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Order confirmed. Item details recorded.</p>
+                    )}
                   </div>
 
                   {/* Cancellation / Refund Information Bar */}
@@ -300,7 +312,7 @@ function OrdersPage() {
                       </p>
                       {order.refundStatus && (
                         <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          Refund Status: <strong>{order.refundStatus}</strong> ({inr(order.totalAmount)} via {order.payment.providerName || "Original Method"})
+                          Refund Status: <strong>{order.refundStatus}</strong> ({inr(order.totalAmount || 0)} via {order.payment?.providerName || "Original Method"})
                         </p>
                       )}
                     </div>
@@ -326,7 +338,9 @@ function OrdersPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground font-medium">Delivery Address:</span>
                       <span className="font-bold text-foreground">
-                        {order.address.house}, {order.address.city}
+                        {order.address
+                          ? [order.address.house, order.address.city].filter(Boolean).join(", ") || "Delivery Address"
+                          : "Delivery Address"}
                       </span>
                     </div>
 
@@ -334,7 +348,7 @@ function OrdersPage() {
                       {/* 1. Track Order Button (For Active Orders) */}
                       {!isCancelled && !isDelivered && (
                         <Link
-                          to="/orders/$id"
+                          to="/track/$id"
                           params={{ id: order.id }}
                           className="flex items-center gap-1 rounded-md bg-brand px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-brand-deep cursor-pointer shadow-2xs"
                         >
@@ -392,6 +406,16 @@ function OrdersPage() {
                         className="rounded-md border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted cursor-pointer"
                       >
                         View Details
+                      </Link>
+
+                      {/* View & Download Tax Invoice */}
+                      <Link
+                        to="/invoice/$orderId"
+                        params={{ orderId: order.id }}
+                        className="rounded-md border border-brand/40 bg-brand/10 px-3 py-1.5 text-xs font-bold text-brand hover:bg-brand/20 cursor-pointer flex items-center gap-1"
+                      >
+                        <FileText className="size-3.5" />
+                        Invoice
                       </Link>
                     </div>
                   </div>

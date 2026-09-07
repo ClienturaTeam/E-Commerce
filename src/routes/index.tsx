@@ -26,19 +26,8 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: HomeRoute,
+  component: Home,
 });
-
-function HomeRoute() {
-  return (
-    <StoreProvider>
-      <Home />
-      <CartPanel />
-      <ChatBot />
-      <MobileBottomNav />
-    </StoreProvider>
-  );
-}
 
 function Home() {
   return (
