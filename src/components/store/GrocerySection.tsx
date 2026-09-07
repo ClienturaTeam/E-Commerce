@@ -358,7 +358,8 @@ export function GrocerySection({
 
               <div className="pt-2 flex items-center gap-4">
                 <Link
-                  to={GROCERY_HERO_SLIDES[currentSlide].route}
+                  to="/search"
+                  search={{ discount: GROCERY_HERO_SLIDES[currentSlide].discount }}
                   className="px-6 py-3 bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-emerald-600 transition-transform cursor-pointer hover:scale-105 inline-block text-center"
                 >
                   SHOP GROCERY • {GROCERY_HERO_SLIDES[currentSlide].discount}

@@ -3,8 +3,8 @@ import { Heart, Star, ShieldCheck, Zap } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { inr, type Product } from "./catalog";
 import { useStore } from "./store-context";
-
-const FALLBACK_IMG = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80";
+import { getFallbackImage, handleImageError } from "./image-fallback";
+import { calculateDiscountPct } from "@/lib/discount-filter";
 
 export function ProductCard({
   product,
@@ -15,13 +15,26 @@ export function ProductCard({
 }) {
   const navigate = useNavigate();
   const { wishlist, toggleWishlist, addRecentlyViewed } = useStore();
-  const [imgSrc, setImgSrc] = React.useState(product.image);
+
+  const initialImg = React.useMemo(() => {
+    if (!product.image || product.image.toLowerCase().includes("no image")) {
+      return getFallbackImage(product.category);
+    }
+    return product.image;
+  }, [product.image, product.category]);
+
+  const [imgSrc, setImgSrc] = React.useState(initialImg);
 
   React.useEffect(() => {
-    setImgSrc(product.image);
-  }, [product.image]);
+    setImgSrc(initialImg);
+  }, [initialImg]);
 
-  const off = Math.round(((product.mrp - product.price) / product.mrp) * 100);
+  const mrp = Number(product.original_price || product.mrp || product.price || 0);
+  const price = Number(product.discounted_price || product.price || 0);
+  const off = typeof product.discount_percentage === "number"
+    ? product.discount_percentage
+    : calculateDiscountPct(mrp, price);
+
   const saved = wishlist.includes(product.id);
 
   const handleCardClick = () => {
@@ -35,11 +48,14 @@ export function ProductCard({
       className="group relative flex h-full cursor-pointer flex-col rounded-xl border border-border bg-card p-3.5 transition-all duration-300 hover:border-brand/50 hover:shadow-xl hover:-translate-y-1"
     >
       {/* Product Image */}
-      <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-muted">
+      <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
         <img
           src={imgSrc}
           alt={product.title}
-          onError={() => setImgSrc(FALLBACK_IMG)}
+          onError={(e) => {
+            handleImageError(e, product.category);
+            setImgSrc(getFallbackImage(product.category));
+          }}
           loading="lazy"
           width={640}
           height={640}
@@ -58,7 +74,7 @@ export function ProductCard({
               {badgeLabel}
             </span>
           )}
-          {off >= 50 && (
+          {off >= 5 && (
             <span className="bg-emerald-600 text-white px-2 py-0.5 text-[10px] font-extrabold uppercase rounded shadow-2xs">
               {off}% OFF
             </span>
@@ -103,27 +119,29 @@ export function ProductCard({
         )}
       </div>
 
-      {/* Product Title */}
-      <h3 className="line-clamp-2 text-xs font-semibold text-foreground group-hover:text-brand transition-colors leading-snug">
+      {/* Title */}
+      <h3 className="mb-2 line-clamp-2 text-xs font-semibold leading-snug text-foreground group-hover:text-brand transition-colors">
         {product.title}
       </h3>
 
       {/* Rating & Reviews */}
-      <div className="mt-2 flex items-center gap-1.5 text-xs">
-        <span className="inline-flex items-center gap-1 rounded bg-emerald-600 px-1.5 py-0.5 text-[11px] font-bold text-white shadow-2xs">
-          {product.rating.toFixed(1)}
-          <Star className="size-3 fill-current" />
-        </span>
-        <span className="text-[11px] text-muted-foreground font-medium">({product.reviews})</span>
+      <div className="mb-2.5 flex items-center gap-1.5 text-xs">
+        <div className="flex items-center gap-0.5 rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+          <span>{product.rating}</span>
+          <Star className="size-2.5 fill-white text-white" />
+        </div>
+        <span className="text-[11px] text-muted-foreground">({product.reviews})</span>
       </div>
 
-      {/* Price Information */}
-      <div className="mt-auto pt-3">
-        <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-base font-extrabold text-foreground">{inr(product.price)}</span>
-          <span className="text-xs text-muted-foreground line-through">{inr(product.mrp)}</span>
-          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{off}% off</span>
-        </div>
+      {/* Price Block */}
+      <div className="mt-auto flex flex-wrap items-baseline gap-1.5 pt-1 border-t border-border/50">
+        <span className="text-sm font-extrabold text-foreground">{inr(price)}</span>
+        {mrp > price && (
+          <>
+            <span className="text-xs text-muted-foreground line-through">{inr(mrp)}</span>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{off}% off</span>
+          </>
+        )}
       </div>
     </article>
   );

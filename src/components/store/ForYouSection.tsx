@@ -233,10 +233,11 @@ export function ForYouSection() {
                 {b.subtitle}
               </p>
               <Link
-                to={b.route}
+                to="/search"
+                search={{ discount: b.discount }}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform hover:scale-105 cursor-pointer"
               >
-                <span>Explore Mega Deals</span>
+                <span>Explore Mega Deals ({b.discount})</span>
                 <ArrowRight className="size-4" />
               </Link>
             </div>

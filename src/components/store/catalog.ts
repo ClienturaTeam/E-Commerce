@@ -20,6 +20,9 @@ export type Product = {
   brand: string;
   price: number;
   mrp: number;
+  original_price?: number;
+  discounted_price?: number;
+  discount_percentage?: number;
   rating: number;
   reviews: string;
   category: string;
@@ -28,6 +31,10 @@ export type Product = {
   color?: string;
   sizes?: string[];
   variants?: ProductVariant[];
+  description?: string;
+  deliveryDays?: number;
+  isBestseller?: boolean;
+  isAssured?: boolean;
 };
 
 export const categories = [
@@ -44,7 +51,7 @@ export const categories = [
   "Books",
 ];
 
-export const products: Product[] = [
+const RAW_PRODUCTS: Product[] = [
   // --- MOBILES ---
   {
     id: "apple-iphone-15",
@@ -1790,6 +1797,23 @@ export const products: Product[] = [
     subCategory: "accessories",
   },
 ];
+
+export const products: Product[] = RAW_PRODUCTS.map((p) => {
+  const original_price = Number(p.original_price || p.mrp || p.price || 0);
+  const discounted_price = Number(p.discounted_price || p.price || 0);
+  const discount_percentage = typeof p.discount_percentage === "number"
+    ? p.discount_percentage
+    : original_price > discounted_price && original_price > 0
+    ? Math.round(((original_price - discounted_price) / original_price) * 100)
+    : 0;
+
+  return {
+    ...p,
+    original_price,
+    discounted_price,
+    discount_percentage,
+  };
+});
 
 export const inr = (n?: number | null) => "₹" + (Number(n) || 0).toLocaleString("en-IN");
 export const baseProducts = products;

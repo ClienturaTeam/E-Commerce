@@ -232,15 +232,13 @@ export function MyntraFashionFeed() {
           </p>
 
           <div className="pt-1">
-            <button
-              onClick={() => {
-                setCategory(HERO_BANNERS[currentSlide].category);
-                document.getElementById("feed-grid")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="px-6 py-2.5 bg-gradient-to-r from-pink-600 via-rose-600 to-amber-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:opacity-95 transition-transform cursor-pointer hover:scale-105"
+            <Link
+              to="/search"
+              search={{ discount: HERO_BANNERS[currentSlide].discount }}
+              className="inline-block px-6 py-2.5 bg-gradient-to-r from-pink-600 via-rose-600 to-amber-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:opacity-95 transition-transform cursor-pointer hover:scale-105"
             >
               EXPLORE NOW • {HERO_BANNERS[currentSlide].discount}
-            </button>
+            </Link>
           </div>
         </div>
 

@@ -307,7 +307,8 @@ export function ElectronicsSection({
 
               <div className="pt-2 flex items-center gap-4">
                 <Link
-                  to={ELECTRONICS_HERO_SLIDES[currentSlide].route}
+                  to="/search"
+                  search={{ discount: ELECTRONICS_HERO_SLIDES[currentSlide].discount }}
                   className="px-6 py-3 bg-brand text-primary-foreground font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-brand-deep transition-transform cursor-pointer hover:scale-105 inline-block text-center"
                 >
                   SHOP ELECTRONICS • {ELECTRONICS_HERO_SLIDES[currentSlide].discount}

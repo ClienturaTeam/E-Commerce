@@ -204,7 +204,8 @@ function FashionHeroCarousel() {
             </p>
             <div className="pt-2">
               <Link
-                to={slide.link}
+                to="/search"
+                search={{ discount: slide.subtitle }}
                 className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-primary-foreground bg-brand hover:bg-brand-deep px-6 py-3 rounded-xl shadow-lg transition-transform duration-300 hover:scale-105 cursor-pointer"
               >
                 {slide.cta}

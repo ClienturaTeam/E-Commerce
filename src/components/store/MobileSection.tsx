@@ -319,7 +319,8 @@ export function MobileSection({
 
               <div className="pt-2 flex items-center gap-4">
                 <Link
-                  to={MOBILE_HERO_SLIDES[currentSlide].route}
+                  to="/search"
+                  search={{ discount: MOBILE_HERO_SLIDES[currentSlide].discount }}
                   className="px-6 py-3 bg-brand text-primary-foreground font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-brand-deep transition-transform cursor-pointer hover:scale-105 inline-block text-center"
                 >
                   EXPLORE MOBILES • {MOBILE_HERO_SLIDES[currentSlide].discount}

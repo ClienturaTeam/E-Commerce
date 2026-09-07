@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useStore } from "./store-context";
 import { toast } from "sonner";
 import bannerHero from "@/assets/banner-hero.jpg";
@@ -112,18 +113,13 @@ export function HeroCarousel() {
               <p className="max-w-md text-xs sm:text-sm text-white/90 font-medium">
                 {slide.subtitle}
               </p>
-              <button
-                onClick={() => {
-                  setCategory(slide.category);
-                  toast.success(`${slide.category} Deals Active`, {
-                    description: `Filtered for ${slide.category} products below.`,
-                  });
-                  jumpToDeals();
-                }}
-                className="w-fit bg-accent px-6 py-2.5 text-sm font-bold text-accent-foreground transition-opacity hover:opacity-90 cursor-pointer shadow-md mt-1"
+              <Link
+                to="/search"
+                search={{ discount: slide.title }}
+                className="w-fit bg-accent px-6 py-2.5 text-sm font-bold text-accent-foreground transition-opacity hover:opacity-90 cursor-pointer shadow-md mt-1 inline-block"
               >
                 {slide.ctaText}
-              </button>
+              </Link>
             </div>
           </div>
         ))}
