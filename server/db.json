@@ -332,14 +332,189 @@
   ],
   "orders": [
     {
+      "id": "KARTLY-20260907-51457",
+      "order_id": "KARTLY-20260907-51457",
+      "userId": "usr-demo",
+      "user_id": "usr-demo",
+      "date": "07 Sept 2026",
+      "created_at": "2026-09-07T11:31:23.810Z",
+      "order_status": "delivered",
+      "status": "DELIVERED",
+      "payment_status": "success",
+      "payment_method": "upi",
+      "expectedDelivery": "10 Sept 2026",
+      "items": [
+        {
+          "title": "Wireless ANC Headphones",
+          "price": 4999,
+          "qty": 1,
+          "category": "Electronics"
+        }
+      ],
+      "address": {
+        "name": "Rahul Sharma",
+        "email": "rahul.sharma@example.com",
+        "phone": "9876543210",
+        "house": "402",
+        "street": "MG Road",
+        "city": "Bengaluru",
+        "pincode": "560001"
+      },
+      "payment": {
+        "method": "upi",
+        "status": "success",
+        "details": {},
+        "transactionId": "TXN-998822"
+      },
+      "subtotal": 4999,
+      "mrpTotal": 0,
+      "discount": 0,
+      "gst_amount": 0,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 5898,
+      "final_amount": 5898,
+      "timeline": [
+        {
+          "status": "placed",
+          "date": "07 Sept 2026",
+          "time": "05:01 pm",
+          "completed": true
+        },
+        {
+          "status": "confirmed",
+          "date": "07 Sept 2026",
+          "time": "05:01 pm",
+          "completed": true
+        },
+        {
+          "status": "shipped",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "out_for_delivery",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "delivered",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "KARTLY-20260907-42579",
+      "order_id": "KARTLY-20260907-42579",
+      "userId": "usr-1788758052184",
+      "user_id": "usr-1788758052184",
+      "date": "07 Sept 2026",
+      "created_at": "2026-09-07T11:21:15.786Z",
+      "order_status": "placed",
+      "status": "PLACED",
+      "payment_status": "pending",
+      "payment_method": "cod",
+      "expectedDelivery": "10 Sept 2026",
+      "items": [
+        {
+          "product": {
+            "id": "whirlpool-7kg-front-load-washing-machine",
+            "image": "https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?auto=format&fit=crop&w=600&q=80",
+            "brand": "Whirlpool",
+            "title": "Whirlpool 7 kg 5 Star Fully Automatic Front Load Washing Machine",
+            "price": 28490,
+            "mrp": 38990,
+            "rating": 4.5,
+            "reviews": "29,410",
+            "category": "Appliances",
+            "applianceType": "washingmachine",
+            "subCategory": "washingmachine",
+            "original_price": 38990,
+            "discounted_price": 28490,
+            "discount_percentage": 27,
+            "color": ""
+          },
+          "qty": 1
+        }
+      ],
+      "address": {
+        "id": "addr-1",
+        "name": "Kartly Demo User",
+        "phone": "9999999999",
+        "house": "Flat 402, Sai Vardhini Heights",
+        "street": "Road No. 12, Banjara Hills",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pincode": "500034",
+        "type": "home",
+        "isDefault": true
+      },
+      "payment": {
+        "method": "cod",
+        "status": "pending",
+        "details": {
+          "method": "cod",
+          "providerName": "Cash on Delivery",
+          "upiId": "demo@ybl",
+          "cardNumberMasked": "•••• 4242",
+          "emiTenureMonths": 3,
+          "emiMonthlyAmount": 11209
+        }
+      },
+      "subtotal": 28490,
+      "mrpTotal": 38990,
+      "discount": 10500,
+      "gst_amount": 0,
+      "platform_fee": 10,
+      "delivery_fee": 0,
+      "total_amount": 28490,
+      "final_amount": 28490,
+      "timeline": [
+        {
+          "status": "placed",
+          "date": "07 Sept 2026",
+          "time": "04:51 pm",
+          "completed": true
+        },
+        {
+          "status": "confirmed",
+          "date": "07 Sept 2026",
+          "time": "04:51 pm",
+          "completed": true
+        },
+        {
+          "status": "shipped",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "out_for_delivery",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        },
+        {
+          "status": "delivered",
+          "date": "10 Sept 2026",
+          "time": "Expected",
+          "completed": false
+        }
+      ]
+    },
+    {
       "id": "KARTLY-20260907-51740",
       "order_id": "KARTLY-20260907-51740",
       "userId": "usr-demo",
       "user_id": "usr-demo",
       "date": "07 Sept 2026",
       "created_at": "2026-09-07T10:28:03.666Z",
-      "order_status": "placed",
-      "status": "PLACED",
+      "order_status": "confirmed",
+      "status": "CONFIRMED",
       "payment_status": "success",
       "payment_method": "upi",
       "expectedDelivery": "10 Sept 2026",
@@ -376,7 +551,8 @@
       "payment": {
         "method": "upi",
         "status": "success",
-        "details": {}
+        "details": {},
+        "transactionId": "TXN-1788778198736-5183"
       },
       "subtotal": 29998,
       "mrpTotal": 0,

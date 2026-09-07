@@ -534,17 +534,44 @@ function PaymentPage() {
                 {paymentMethod === "UPI" && (
                   <UpiPaymentWidget
                     payableAmount={activePriceTotal}
+                    orderId={targetOrder?.id || lastOrderId || undefined}
                     onPaymentSuccess={(details) => {
-                      const newOrder = placeOrder(
-                        {
-                          method: "upi",
-                          providerName: details.providerName,
-                          upiId: details.upiId,
-                        },
-                        "addr-1"
-                      );
-                      if (newOrder) {
-                        navigate({ to: "/success" });
+                      const activeOrderId = targetOrder?.id || lastOrderId;
+                      if (activeOrderId) {
+                        verifyPaymentApi({
+                          orderId: activeOrderId,
+                          transactionId: `TXN-${Date.now()}`,
+                          status: "SUCCESS",
+                        }).catch(console.error);
+                        clearCart();
+                        clearBuyNow();
+                        toast.success("Payment Successful!", {
+                          description: `Payment verified via ${details.providerName}.`,
+                        });
+                        navigate({ to: "/order-success", search: { orderId: activeOrderId } });
+                      } else {
+                        const newOrder = placeOrder(
+                          {
+                            method: "upi",
+                            providerName: details.providerName,
+                            upiId: details.upiId,
+                          },
+                          "addr-1"
+                        );
+                        const finalId = newOrder?.id;
+                        if (finalId) {
+                          verifyPaymentApi({
+                            orderId: finalId,
+                            transactionId: `TXN-${Date.now()}`,
+                            status: "SUCCESS",
+                          }).catch(console.error);
+                          clearCart();
+                          clearBuyNow();
+                          toast.success("Payment Successful!", {
+                            description: `Order ${finalId} placed successfully.`,
+                          });
+                          navigate({ to: "/order-success", search: { orderId: finalId } });
+                        }
                       }
                     }}
                   />

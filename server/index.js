@@ -14,6 +14,12 @@ import {
   OrderModel,
   AddressModel,
 } from "./db.js";
+import {
+  sendOrderPlacedNotification,
+  sendPaymentSuccessNotification,
+  sendOrderShippedNotification,
+  sendOrderDeliveredNotification,
+} from "./notifications.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1060,6 +1066,9 @@ app.post("/api/orders/place", authenticateToken, async (req, res) => {
     }
   }
 
+  // Trigger Asynchronous Email & SMS Notification for Order Placement
+  sendOrderPlacedNotification(newOrder, req.user);
+
   res.status(201).json({
     success: true,
     message: "Order placed successfully!",
@@ -1113,6 +1122,40 @@ app.get("/api/orders/:id/status", (req, res) => {
   });
 });
 
+// PUT /orders/:id/status & /api/orders/:id/status
+app.put("/api/orders/:id/status", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { status, order_status } = req.body || {};
+  const newStatus = (order_status || status || "shipped").toLowerCase();
+
+  const order = db.orders.find((o) => o.id === id || o.order_id === id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found" });
+  }
+
+  order.order_status = newStatus;
+  order.status = newStatus.toUpperCase();
+  saveDb();
+
+  if (isMongoConnected) {
+    try {
+      await OrderModel.findOneAndUpdate({ order_id: id }, { order_status: newStatus });
+    } catch (e) {}
+  }
+
+  if (newStatus === "shipped" || newStatus === "out_for_delivery") {
+    sendOrderShippedNotification(order, req.user);
+  } else if (newStatus === "delivered") {
+    sendOrderDeliveredNotification(order, req.user);
+  }
+
+  res.json({
+    success: true,
+    message: `Order status updated to ${newStatus}`,
+    order,
+  });
+});
+
 // ==========================================
 // 8. PAYMENT APIs
 // ==========================================
@@ -1163,6 +1206,18 @@ app.post("/api/payment/verify", authenticateToken, async (req, res) => {
       } catch (e) {
         console.error("MongoDB Order payment verify error:", e.message);
       }
+    }
+
+    if (status.toLowerCase() === "success") {
+      sendPaymentSuccessNotification(
+        order,
+        {
+          amount: order.total_amount || order.final_amount || 0,
+          method: order.payment_method || "UPI",
+          transactionId: transactionId || `TXN-${Date.now()}`,
+        },
+        req.user
+      );
     }
   }
 

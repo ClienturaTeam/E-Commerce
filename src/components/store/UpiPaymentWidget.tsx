@@ -10,14 +10,18 @@ import {
   ExternalLink,
   ShieldCheck,
   Check,
+  XCircle,
+  Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inr } from "./catalog";
 
-export type UpiAppId = "phonepe" | "gpay" | "paytm" | "other";
+export type UpiAppId = "gpay" | "phonepe" | "paytm" | "other";
 
 interface UpiPaymentWidgetProps {
   payableAmount: number;
+  orderId?: string;
   merchantVpa?: string;
   merchantName?: string;
   onPaymentSuccess: (paymentDetails: { method: "upi"; providerName: string; upiId: string }) => void;
@@ -26,21 +30,26 @@ interface UpiPaymentWidgetProps {
 
 export function UpiPaymentWidget({
   payableAmount,
+  orderId = "OrderPayment",
   merchantVpa = "kartly@okicici",
   merchantName = "Kartly Store",
   onPaymentSuccess,
   onCancel,
 }: UpiPaymentWidgetProps) {
-  const [selectedApp, setSelectedApp] = React.useState<UpiAppId>("phonepe");
-  const [upiSubOption, setUpiSubOption] = React.useState<"qr" | "app" | "id">("qr");
+  const [selectedApp, setSelectedApp] = React.useState<UpiAppId>("gpay");
+  const [upiSubOption, setUpiSubOption] = React.useState<"app" | "qr" | "id">("app");
   const [customUpiId, setCustomUpiId] = React.useState("");
   const [upiIdError, setUpiIdError] = React.useState("");
+
+  // Payment Status States
+  const [isWaitingReturn, setIsWaitingReturn] = React.useState(false);
+  const [isVerifying, setIsVerifying] = React.useState(false);
+  const [isSuccess, setIsSuccess] = React.useState(false);
+  const [isCancelled, setIsCancelled] = React.useState(false);
 
   // 5-Minute Timer (300 Seconds)
   const [timeLeft, setTimeLeft] = React.useState<number>(300);
   const [isExpired, setIsExpired] = React.useState(false);
-  const [isVerifying, setIsVerifying] = React.useState(false);
-  const [isSuccess, setIsSuccess] = React.useState(false);
 
   // Timer Countdown Effect
   React.useEffect(() => {
@@ -63,28 +72,26 @@ export function UpiPaymentWidget({
   const handleRefreshTimer = () => {
     setTimeLeft(300);
     setIsExpired(false);
-    toast.success("Payment session refreshed! New QR generated.");
+    toast.success("Payment session refreshed!");
   };
 
-  // Generate UPI Deep Link URI
-  const rawUpiUri = `upi://pay?pa=${encodeURIComponent(merchantVpa)}&pn=${encodeURIComponent(
-    merchantName
-  )}&am=${payableAmount.toFixed(2)}&cu=INR&tr=${Date.now()}`;
+  // Generate Standard UPI Deep Link URI
+  // Format: upi://pay?pa=<UPI_ID>&pn=<NAME>&am=<AMOUNT>&cu=INR&tn=<NOTE>
+  const noteParam = encodeURIComponent(orderId || "OrderPayment");
+  const vpaParam = encodeURIComponent(merchantVpa);
+  const nameParam = encodeURIComponent(merchantName);
+  const amountParam = payableAmount.toFixed(2);
+
+  const rawUpiUri = `upi://pay?pa=${vpaParam}&pn=${nameParam}&am=${amountParam}&cu=INR&tn=${noteParam}`;
 
   const getAppDeepLink = (app: UpiAppId) => {
     switch (app) {
-      case "phonepe":
-        return `phonepe://pay?pa=${encodeURIComponent(merchantVpa)}&pn=${encodeURIComponent(
-          merchantName
-        )}&am=${payableAmount.toFixed(2)}&cu=INR`;
       case "gpay":
-        return `gpay://upi/pay?pa=${encodeURIComponent(merchantVpa)}&pn=${encodeURIComponent(
-          merchantName
-        )}&am=${payableAmount.toFixed(2)}&cu=INR`;
+        return `gpay://upi/pay?pa=${vpaParam}&pn=${nameParam}&am=${amountParam}&cu=INR&tn=${noteParam}`;
+      case "phonepe":
+        return `phonepe://pay?pa=${vpaParam}&pn=${nameParam}&am=${amountParam}&cu=INR&tn=${noteParam}`;
       case "paytm":
-        return `paytmmp://pay?pa=${encodeURIComponent(merchantVpa)}&pn=${encodeURIComponent(
-          merchantName
-        )}&am=${payableAmount.toFixed(2)}&cu=INR`;
+        return `paytmmp://pay?pa=${vpaParam}&pn=${nameParam}&am=${amountParam}&cu=INR&tn=${noteParam}`;
       default:
         return rawUpiUri;
     }
@@ -92,12 +99,12 @@ export function UpiPaymentWidget({
 
   const activeDeepLink = getAppDeepLink(selectedApp);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(
-    activeDeepLink
+    rawUpiUri
   )}`;
 
   const appNames: Record<UpiAppId, string> = {
-    phonepe: "PhonePe",
     gpay: "Google Pay",
+    phonepe: "PhonePe",
     paytm: "Paytm",
     other: "Other UPI App",
   };
@@ -105,18 +112,18 @@ export function UpiPaymentWidget({
   // App Selection Circular Badges Config
   const appsConfig = [
     {
-      id: "phonepe" as UpiAppId,
-      name: "PhonePe",
-      bgClass: "bg-purple-600 text-white",
-      borderClass: "border-purple-600 ring-purple-600/30",
-      iconText: "Ph",
-    },
-    {
       id: "gpay" as UpiAppId,
       name: "Google Pay",
       bgClass: "bg-blue-600 text-white",
       borderClass: "border-blue-600 ring-blue-600/30",
       iconText: "GPay",
+    },
+    {
+      id: "phonepe" as UpiAppId,
+      name: "PhonePe",
+      bgClass: "bg-purple-600 text-white",
+      borderClass: "border-purple-600 ring-purple-600/30",
+      iconText: "Ph",
     },
     {
       id: "paytm" as UpiAppId,
@@ -137,25 +144,33 @@ export function UpiPaymentWidget({
   // Deep Link App Trigger
   const handleLaunchUpiApp = () => {
     if (isExpired) {
-      toast.error("Session expired! Please refresh QR code to continue.");
+      toast.error("Session expired! Please refresh timer to continue.");
       return;
     }
     const appName = appNames[selectedApp];
-    toast.info(`Redirecting to ${appName}...`, {
-      description: "If app doesn't open automatically, please scan the QR code.",
+    toast.info(`Opening ${appName}...`, {
+      description: "Redirecting to your payment app. Complete payment & confirm below.",
     });
+
+    setIsCancelled(false);
+    setIsWaitingReturn(true);
 
     try {
       window.location.href = activeDeepLink;
     } catch {
-      toast.error(`Could not open ${appName} directly. Please use QR Code below.`);
+      // If direct deep link is blocked by browser, fallback to standard upi:// scheme
+      try {
+        window.location.href = rawUpiUri;
+      } catch {
+        toast.error(`Could not launch ${appName} directly. Please scan the QR code.`);
+      }
     }
   };
 
-  // Mock Payment Verification ("I Have Paid")
-  const handleVerifyAndConfirm = () => {
+  // Confirm Payment Completed ("I Have Completed Payment")
+  const handleConfirmCompletedPayment = () => {
     if (isExpired) {
-      toast.error("Session expired! Please refresh the timer before completing payment.");
+      toast.error("Session expired! Please refresh timer before confirming.");
       return;
     }
 
@@ -172,311 +187,390 @@ export function UpiPaymentWidget({
     setTimeout(() => {
       setIsVerifying(false);
       setIsSuccess(true);
-      toast.success("Payment Successful 🎉", {
-        description: `₹${payableAmount} verified via ${appNames[selectedApp]}. Order confirmed!`,
+      toast.success("Payment Verified Successfully! 🎉", {
+        description: `₹${payableAmount} received via ${appNames[selectedApp]}.`,
       });
 
       setTimeout(() => {
         const finalUpiId =
           upiSubOption === "id" && customUpiId
             ? customUpiId
-            : `${selectedApp}@ybl`;
+            : `${selectedApp}@okicici`;
 
         onPaymentSuccess({
           method: "upi",
           providerName: appNames[selectedApp],
           upiId: finalUpiId,
         });
-      }, 1000);
-    }, 1500);
+      }, 800);
+    }, 1200);
+  };
+
+  // Handle Cancel / Retry Payment
+  const handleCancelPayment = () => {
+    setIsWaitingReturn(false);
+    setIsVerifying(false);
+    setIsCancelled(true);
+    toast.error("Payment Cancelled", {
+      description: "You can retry UPI payment or choose another payment option.",
+    });
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-6 max-w-xl mx-auto font-sans">
+    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-md space-y-6 max-w-xl mx-auto font-sans">
       {/* Header with Price & Timer */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <h3 className="text-base font-extrabold text-foreground flex items-center gap-2">
-            <Smartphone className="size-5 text-brand" /> UPI Instant Payment
+            <Smartphone className="size-5 text-brand" /> UPI Deep Link Payment
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            100% Secure Instant Bank Transfer via UPI
+            Instant Pay via Google Pay, PhonePe & Paytm
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="text-right">
             <span className="text-[10px] font-bold text-muted-foreground uppercase block">
-              Payable Amount
+              Total Amount
             </span>
             <span className="text-lg font-black text-brand">{inr(payableAmount)}</span>
           </div>
         </div>
       </div>
 
-      {/* 1. Circular UPI App Selection Options */}
-      <div className="space-y-2">
-        <label className="block text-xs font-extrabold uppercase tracking-wider text-foreground">
-          1. Select UPI Payment App
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {appsConfig.map((app) => {
-            const isSelected = selectedApp === app.id;
-            return (
-              <button
-                key={app.id}
-                type="button"
-                onClick={() => {
-                  setSelectedApp(app.id);
-                  setUpiIdError("");
-                }}
-                className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
-                  isSelected
-                    ? `${app.borderClass} bg-brand/5 ring-2 shadow-xs font-bold`
-                    : "border-border bg-background hover:border-brand/40"
-                }`}
-              >
-                {/* Circular Style Icon Badge */}
-                <div
-                  className={`size-10 rounded-full ${app.bgClass} flex items-center justify-center font-black text-xs shadow-md transition-transform ${
-                    isSelected ? "scale-110" : ""
-                  }`}
-                >
-                  {app.iconText}
-                </div>
-                <span className="text-xs font-bold text-foreground truncate max-w-full">
-                  {app.name}
-                </span>
-                {isSelected && (
-                  <span className="text-[9px] bg-brand text-primary-foreground font-bold px-1.5 py-0.2 rounded-full">
-                    Selected
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. Sub-option Tabs: QR Scanner vs Direct App Launch vs Manual VPA */}
-      <div className="grid grid-cols-3 gap-1.5 bg-muted/40 p-1.5 rounded-lg border border-border">
-        <button
-          type="button"
-          onClick={() => setUpiSubOption("qr")}
-          className={`py-2 px-2 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            upiSubOption === "qr"
-              ? "bg-card text-brand shadow-xs border border-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <QrCode className="size-3.5" /> Scan QR
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setUpiSubOption("app")}
-          className={`py-2 px-2 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            upiSubOption === "app"
-              ? "bg-card text-brand shadow-xs border border-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <ExternalLink className="size-3.5" /> Direct App
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setUpiSubOption("id")}
-          className={`py-2 px-2 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            upiSubOption === "id"
-              ? "bg-card text-brand shadow-xs border border-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Smartphone className="size-3.5" /> Enter ID
-        </button>
-      </div>
-
-      {/* Timer Bar */}
-      <div className="flex items-center justify-between bg-muted/30 p-2.5 rounded-lg border border-border text-xs">
-        <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-          <Clock className="size-3.5 text-brand" /> Payment Session Timer
-        </span>
-        <div
-          className={`font-black text-xs px-2.5 py-0.5 rounded-md flex items-center gap-1.5 ${
-            isExpired
-              ? "bg-destructive/15 text-destructive border border-destructive/30"
-              : timeLeft < 60
-              ? "bg-amber-100 text-amber-900 border border-amber-300 animate-pulse"
-              : "bg-emerald-100 text-emerald-900 border border-emerald-300"
-          }`}
-        >
-          {isExpired ? "00:00 (Session Expired)" : formatTimer(timeLeft)}
-        </div>
-      </div>
-
-      {/* View A: QR Code Scanner */}
-      {upiSubOption === "qr" && (
-        <div className="space-y-4 text-center">
-          <div className="relative border-2 border-dashed border-brand/40 bg-card p-5 rounded-2xl max-w-xs mx-auto space-y-3 shadow-sm">
-            <div className="flex items-center justify-between text-xs border-b border-border pb-2">
-              <span className="font-bold text-foreground flex items-center gap-1">
-                <ShieldCheck className="size-4 text-emerald-600" /> {merchantName}
-              </span>
-              <span className="font-black text-brand text-xs">{inr(payableAmount)}</span>
-            </div>
-
-            {/* QR Code Container with Frame Corners */}
-            <div className="relative bg-white p-3 rounded-xl border border-border inline-block shadow-xs">
-              <div className="absolute top-1 left-1 size-3.5 border-t-2 border-l-2 border-brand" />
-              <div className="absolute top-1 right-1 size-3.5 border-t-2 border-r-2 border-brand" />
-              <div className="absolute bottom-1 left-1 size-3.5 border-b-2 border-l-2 border-brand" />
-              <div className="absolute bottom-1 right-1 size-3.5 border-b-2 border-r-2 border-brand" />
-
-              {isExpired ? (
-                <div className="size-44 bg-muted/80 rounded flex flex-col items-center justify-center p-3 text-center space-y-2">
-                  <AlertTriangle className="size-8 text-destructive mx-auto" />
-                  <p className="text-xs font-bold text-destructive">QR Expired</p>
-                  <button
-                    type="button"
-                    onClick={handleRefreshTimer}
-                    className="text-[10px] font-bold bg-brand text-primary-foreground px-2 py-1 rounded hover:opacity-90 cursor-pointer"
-                  >
-                    Refresh Timer
-                  </button>
-                </div>
-              ) : (
-                <img
-                  src={qrImageUrl}
-                  alt={`Scan QR Code to Pay via ${appNames[selectedApp]}`}
-                  className="size-44 object-contain mx-auto"
-                />
-              )}
-            </div>
-
-            <p className="text-xs font-bold text-foreground">
-              Scan using <span className="text-brand font-black">{appNames[selectedApp]}</span> or any UPI App
-            </p>
-
-            <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-mono bg-muted/50 p-1.5 rounded">
-              <span>VPA: {merchantVpa}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(merchantVpa);
-                  toast.success("VPA copied to clipboard!");
-                }}
-                className="hover:text-foreground p-0.5 cursor-pointer"
-              >
-                <Copy className="size-3" />
-              </button>
-            </div>
+      {/* WAITING FOR PAYMENT RETURN SCREEN */}
+      {isWaitingReturn ? (
+        <div className="space-y-6 text-center py-4 animate-in fade-in zoom-in-95">
+          <div className="mx-auto size-16 rounded-full bg-brand/10 border border-brand/30 flex items-center justify-center text-brand relative">
+            <Loader2 className="size-10 animate-spin text-brand" />
           </div>
-        </div>
-      )}
 
-      {/* View B: Direct App Launch */}
-      {upiSubOption === "app" && (
-        <div className="space-y-4 text-center max-w-sm mx-auto p-4 border border-border rounded-xl bg-muted/10">
           <div className="space-y-1">
-            <h4 className="text-sm font-bold text-foreground">
-              Open {appNames[selectedApp]} App Directly
-            </h4>
-            <p className="text-xs text-muted-foreground">
-              Clicking below will automatically launch the {appNames[selectedApp]} mobile app with the prefilled amount of <strong>{inr(payableAmount)}</strong>.
+            <span className="inline-block px-3 py-1 rounded-full bg-brand text-primary-foreground font-black text-[10px] uppercase tracking-widest">
+              REDIRECTED TO {appNames[selectedApp].toUpperCase()}
+            </span>
+            <h4 className="text-lg font-black text-foreground">Waiting for Payment Confirmation</h4>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Please complete the payment of <strong className="text-foreground">{inr(payableAmount)}</strong> in your <strong>{appNames[selectedApp]}</strong> app and click below once done.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleLaunchUpiApp}
-            disabled={isExpired}
-            className="w-full bg-brand text-primary-foreground py-3 px-4 rounded-xl text-xs font-extrabold hover:bg-brand-deep transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
-          >
-            <Smartphone className="size-4" /> Open {appNames[selectedApp]} & Pay {inr(payableAmount)} <ExternalLink className="size-3.5" />
-          </button>
-
-          <p className="text-[11px] text-muted-foreground">
-            App not opening? Switch to <button type="button" onClick={() => setUpiSubOption("qr")} className="text-brand font-bold underline cursor-pointer">Scan QR Code</button> above.
-          </p>
-        </div>
-      )}
-
-      {/* View C: Enter Manual UPI ID */}
-      {upiSubOption === "id" && (
-        <div className="space-y-3 max-w-sm mx-auto">
-          <div>
-            <label className="block text-xs font-bold text-foreground mb-1">
-              Enter your UPI ID / Virtual Address (VPA) <span className="text-destructive">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. mobile@ybl or username@upi"
-              value={customUpiId}
-              onChange={(e) => {
-                setCustomUpiId(e.target.value);
-                if (upiIdError) setUpiIdError("");
-              }}
-              className={`w-full rounded-lg border bg-background px-3 py-2 text-xs text-foreground outline-none focus:border-brand font-mono ${
-                upiIdError ? "border-destructive" : "border-border"
-              }`}
-            />
-            {upiIdError ? (
-              <p className="text-[11px] text-destructive mt-1 font-semibold">{upiIdError}</p>
-            ) : (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                A payment request will be sent to your UPI app.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Action Bar: I Have Paid / Verify Payment */}
-      <div className="space-y-3 pt-3 border-t border-border">
-        {isSuccess ? (
-          <div className="bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 p-4 rounded-xl text-center border border-emerald-200 space-y-1 animate-in zoom-in-95">
-            <CheckCircle2 className="size-8 text-emerald-600 mx-auto" />
-            <h4 className="text-sm font-black">Payment Successful 🎉</h4>
-            <p className="text-xs">Redirecting to Order Confirmation page...</p>
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            {onCancel && (
+          {/* Deep Link Quick URI Copy Box */}
+          <div className="bg-muted/40 p-3 rounded-xl border border-border/80 text-xs space-y-1 max-w-sm mx-auto">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground font-mono truncate max-w-[240px]">
+                {activeDeepLink}
+              </span>
               <button
                 type="button"
-                onClick={onCancel}
-                className="w-full sm:w-1/3 bg-muted hover:bg-muted/80 text-foreground py-3 rounded-xl text-xs font-bold cursor-pointer transition-colors border border-border"
+                onClick={() => {
+                  navigator.clipboard.writeText(activeDeepLink);
+                  toast.success("UPI Deep Link copied!");
+                }}
+                className="text-brand font-bold hover:underline cursor-pointer flex items-center gap-1 shrink-0"
               >
-                Back
+                <Copy className="size-3" /> Copy Link
               </button>
-            )}
+            </div>
+          </div>
 
+          {/* Action Buttons: I Have Completed Payment vs Cancel Payment */}
+          <div className="space-y-3 pt-2 max-w-md mx-auto">
             <button
               type="button"
-              onClick={handleVerifyAndConfirm}
-              disabled={isExpired || isVerifying}
-              className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              onClick={handleConfirmCompletedPayment}
+              disabled={isVerifying || isSuccess}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
             >
               {isVerifying ? (
                 <>
-                  <span className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Verifying Payment...
+                  <Loader2 className="size-4 animate-spin" /> Verifying Payment Status...
+                </>
+              ) : isSuccess ? (
+                <>
+                  <CheckCircle2 className="size-4 text-white" /> Payment Verified!
                 </>
               ) : (
                 <>
-                  <Check className="size-4" /> I Have Paid {inr(payableAmount)}
+                  <Check className="size-4" /> I Have Completed Payment ({inr(payableAmount)})
                 </>
               )}
             </button>
-          </div>
-        )}
 
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-          <ShieldCheck className="size-3.5 text-emerald-600" />
-          <span>PCI-DSS Compliant • 256-bit Encrypted SSL Gateway</span>
+            <button
+              type="button"
+              onClick={handleCancelPayment}
+              disabled={isVerifying}
+              className="w-full bg-muted hover:bg-muted/80 text-foreground py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-border flex items-center justify-center gap-1.5"
+            >
+              <XCircle className="size-4 text-destructive" /> Cancel Payment / Retry Option
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* CANCELLED ALERT BANNER */}
+          {isCancelled && (
+            <div className="bg-destructive/10 border border-destructive/30 p-3 rounded-xl text-xs text-destructive flex items-center justify-between">
+              <span className="font-bold flex items-center gap-1.5">
+                <AlertTriangle className="size-4 shrink-0" /> Payment was cancelled. Please select an app to try again.
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsCancelled(false)}
+                className="text-[10px] underline font-bold cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* 1. Circular UPI App Selection */}
+          <div className="space-y-2">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-foreground">
+              1. Choose UPI App to Pay
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {appsConfig.map((app) => {
+                const isSelected = selectedApp === app.id;
+                return (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedApp(app.id);
+                      setUpiIdError("");
+                    }}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? `${app.borderClass} bg-brand/5 ring-2 shadow-xs font-bold`
+                        : "border-border bg-background hover:border-brand/40"
+                    }`}
+                  >
+                    <div
+                      className={`size-10 rounded-full ${app.bgClass} flex items-center justify-center font-black text-xs shadow-md transition-transform ${
+                        isSelected ? "scale-110" : ""
+                      }`}
+                    >
+                      {app.iconText}
+                    </div>
+                    <span className="text-xs font-bold text-foreground truncate max-w-full">
+                      {app.name}
+                    </span>
+                    {isSelected && (
+                      <span className="text-[9px] bg-brand text-primary-foreground font-bold px-1.5 py-0.2 rounded-full">
+                        Selected
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Sub-Option Tabs: Direct App vs QR vs VPA */}
+          <div className="grid grid-cols-3 gap-1.5 bg-muted/40 p-1.5 rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setUpiSubOption("app")}
+              className={`py-2 px-2 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                upiSubOption === "app"
+                  ? "bg-card text-brand shadow-xs border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ExternalLink className="size-3.5" /> Direct App
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUpiSubOption("qr")}
+              className={`py-2 px-2 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                upiSubOption === "qr"
+                  ? "bg-card text-brand shadow-xs border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <QrCode className="size-3.5" /> Scan QR
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUpiSubOption("id")}
+              className={`py-2 px-2 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                upiSubOption === "id"
+                  ? "bg-card text-brand shadow-xs border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Smartphone className="size-3.5" /> Enter ID
+            </button>
+          </div>
+
+          {/* Timer Indicator Bar */}
+          <div className="flex items-center justify-between bg-muted/30 p-2.5 rounded-lg border border-border text-xs">
+            <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+              <Clock className="size-3.5 text-brand" /> Payment Session Timer
+            </span>
+            <div
+              className={`font-black text-xs px-2.5 py-0.5 rounded-md flex items-center gap-1.5 ${
+                isExpired
+                  ? "bg-destructive/15 text-destructive border border-destructive/30"
+                  : timeLeft < 60
+                  ? "bg-amber-100 text-amber-900 border border-amber-300 animate-pulse"
+                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+              }`}
+            >
+              {isExpired ? "00:00 (Session Expired)" : formatTimer(timeLeft)}
+            </div>
+          </div>
+
+          {/* View A: Direct App Redirect */}
+          {upiSubOption === "app" && (
+            <div className="space-y-4 text-center p-4 border border-border rounded-xl bg-muted/10">
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-foreground">
+                  Pay via {appNames[selectedApp]} Deep Link
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Clicking below opens the {appNames[selectedApp]} mobile app with prefilled order total <strong>{inr(payableAmount)}</strong>.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLaunchUpiApp}
+                disabled={isExpired}
+                className="w-full bg-brand text-primary-foreground py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-brand-deep transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+              >
+                <Smartphone className="size-4" /> Open {appNames[selectedApp]} & Pay {inr(payableAmount)} <ExternalLink className="size-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* View B: QR Code Scanner */}
+          {upiSubOption === "qr" && (
+            <div className="space-y-4 text-center">
+              <div className="relative border-2 border-dashed border-brand/40 bg-card p-5 rounded-2xl max-w-xs mx-auto space-y-3 shadow-sm">
+                <div className="flex items-center justify-between text-xs border-b border-border pb-2">
+                  <span className="font-bold text-foreground flex items-center gap-1">
+                    <ShieldCheck className="size-4 text-emerald-600" /> {merchantName}
+                  </span>
+                  <span className="font-black text-brand text-xs">{inr(payableAmount)}</span>
+                </div>
+
+                <div className="relative bg-white p-3 rounded-xl border border-border inline-block shadow-xs">
+                  {isExpired ? (
+                    <div className="size-44 bg-muted/80 rounded flex flex-col items-center justify-center p-3 text-center space-y-2">
+                      <AlertTriangle className="size-8 text-destructive mx-auto" />
+                      <p className="text-xs font-bold text-destructive">QR Expired</p>
+                      <button
+                        type="button"
+                        onClick={handleRefreshTimer}
+                        className="text-[10px] font-bold bg-brand text-primary-foreground px-2 py-1 rounded hover:opacity-90 cursor-pointer"
+                      >
+                        Refresh Timer
+                      </button>
+                    </div>
+                  ) : (
+                    <img
+                      src={qrImageUrl}
+                      alt={`Scan QR Code to Pay via ${appNames[selectedApp]}`}
+                      className="size-44 object-contain mx-auto"
+                    />
+                  )}
+                </div>
+
+                <p className="text-xs font-bold text-foreground">
+                  Scan using <span className="text-brand font-black">{appNames[selectedApp]}</span> or any UPI App
+                </p>
+
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-mono bg-muted/50 p-1.5 rounded">
+                  <span>VPA: {merchantVpa}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(merchantVpa);
+                      toast.success("VPA copied to clipboard!");
+                    }}
+                    className="hover:text-foreground p-0.5 cursor-pointer"
+                  >
+                    <Copy className="size-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* View C: Manual VPA */}
+          {upiSubOption === "id" && (
+            <div className="space-y-3 max-w-sm mx-auto">
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1">
+                  Enter your UPI ID / Virtual Address (VPA) <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. mobile@ybl or username@okicici"
+                  value={customUpiId}
+                  onChange={(e) => {
+                    setCustomUpiId(e.target.value);
+                    if (upiIdError) setUpiIdError("");
+                  }}
+                  className={`w-full rounded-lg border bg-background px-3 py-2 text-xs text-foreground outline-none focus:border-brand font-mono ${
+                    upiIdError ? "border-destructive" : "border-border"
+                  }`}
+                />
+                {upiIdError ? (
+                  <p className="text-[11px] text-destructive mt-1 font-semibold">{upiIdError}</p>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    A payment request will be pushed to your UPI app.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Action Controls */}
+          <div className="space-y-3 pt-3 border-t border-border">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              {onCancel && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="w-full sm:w-1/3 bg-muted hover:bg-muted/80 text-foreground py-3 rounded-xl text-xs font-bold cursor-pointer transition-colors border border-border"
+                >
+                  Back
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleConfirmCompletedPayment}
+                disabled={isExpired || isVerifying}
+                className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              >
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> Verifying Payment...
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-4" /> I Have Completed Payment ({inr(payableAmount)})
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+              <ShieldCheck className="size-3.5 text-emerald-600" />
+              <span>PCI-DSS Compliant • 256-bit Encrypted SSL Gateway</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

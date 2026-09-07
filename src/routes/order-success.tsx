@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
-import { CheckCircle2, PackageCheck, ArrowRight, Truck, Home, ShoppingBag, ShieldCheck } from "lucide-react";
+import { CheckCircle2, PackageCheck, ArrowRight, Truck, Home, ShoppingBag, ShieldCheck, Smartphone } from "lucide-react";
 import { SiteHeader } from "@/components/store/SiteHeader";
 import { SiteFooter } from "@/components/store/SiteFooter";
 import { CartPanel } from "@/components/store/CartPanel";
@@ -144,9 +144,24 @@ function OrderSuccessPage() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-border flex justify-between items-center text-sm font-black">
-              <span>Total Paid:</span>
-              <span className="text-emerald-600 text-lg">{inr(totalPaid > 0 ? totalPaid : 999)}</span>
+            <div className="pt-3 border-t border-border space-y-2">
+              <div className="flex justify-between items-center text-xs font-semibold">
+                <span className="text-muted-foreground">Payment Method:</span>
+                <span className="font-bold text-foreground flex items-center gap-1">
+                  <Smartphone className="size-3.5 text-emerald-600" />
+                  {currentOrder?.payment?.providerName
+                    ? `UPI (${currentOrder.payment.providerName})`
+                    : "UPI (Google Pay / PhonePe / Paytm)"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-semibold">
+                <span className="text-muted-foreground">Order ID:</span>
+                <span className="font-mono font-bold text-foreground">{displayOrderId}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm font-black pt-1 border-t border-border/50">
+                <span>Amount Paid:</span>
+                <span className="text-emerald-600 text-lg font-black">{inr(totalPaid > 0 ? totalPaid : 999)}</span>
+              </div>
             </div>
           </div>
         </div>
