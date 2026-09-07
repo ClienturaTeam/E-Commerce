@@ -5,6 +5,15 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { INITIAL_PRODUCTS } from "./productsData.js";
+import {
+  connectDB,
+  isMongoConnected,
+  UserModel,
+  ProductModel,
+  CartModel,
+  OrderModel,
+  AddressModel,
+} from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,12 +36,6 @@ app.use((req, res, next) => {
 });
 
 // Database Schemas & Data Store
-// 1. USERS: user_id, name, email, phone, password, role
-// 2. PRODUCTS: product_id, name, category, description, base_price, variants[]
-// 3. CART: cart_id, user_id, items[{ product_id, variant, quantity, price }]
-// 4. ORDERS: order_id, user_id, items[], total_amount, gst_amount, delivery_fee, platform_fee, final_amount, address, payment_method, payment_status, order_status, created_at
-// 5. ADDRESSES: address_id, user_id, name, phone, address_line, city, pincode, type
-
 const defaultDb = {
   users: [
     {
@@ -85,8 +88,8 @@ const defaultDb = {
       { color: "Default", size: "Standard", price: p.price, stock: 50, images: [p.image] },
     ],
   })),
-  cart: [], // [{ cart_id, user_id, items: [{ product_id, product, variant, quantity, price }] }]
-  wishlist: [], // [{ userId, productId }]
+  cart: [],
+  wishlist: [],
   addresses: [
     {
       id: "addr-1",
@@ -204,6 +207,53 @@ function saveDb() {
   }
 }
 
+// Connect to MongoDB database
+connectDB().then(async () => {
+  if (isMongoConnected) {
+    try {
+      // Seed products if empty
+      const count = await ProductModel.countDocuments();
+      if (count === 0) {
+        const prodDocs = db.products.map((p) => ({
+          product_id: p.id || p.product_id,
+          name: p.title || p.name,
+          category: p.category,
+          description: p.description,
+          original_price: p.mrp || p.original_price || p.price,
+          discounted_price: p.price || p.discounted_price,
+          discount_percentage: p.discount_percentage || 0,
+          brand: p.brand,
+          rating: p.rating,
+          reviews: String(p.reviews || "1,250"),
+          image: p.image,
+          subCategory: p.subCategory,
+          fashionCategory: p.fashionCategory,
+          variants: p.variants || [],
+        }));
+        await ProductModel.insertMany(prodDocs);
+        console.log(`📦 Seeded ${prodDocs.length} products into MongoDB.`);
+      }
+
+      // Seed users if empty
+      const uCount = await UserModel.countDocuments();
+      if (uCount === 0) {
+        await UserModel.insertMany(db.users.map(u => ({
+          user_id: u.id || u.user_id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          password: u.password,
+          role: u.role || "CUSTOMER",
+          rewardPoints: u.rewardPoints || 0
+        })));
+        console.log(`👤 Seeded ${db.users.length} users into MongoDB.`);
+      }
+    } catch (e) {
+      console.error("MongoDB initial seeding error:", e.message);
+    }
+  }
+});
+
 // Helper: Calculate GST Rate per category
 function getGstRateForCategory(category = "") {
   const cat = category.toLowerCase();
@@ -247,6 +297,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     service: "Kartly Full-Stack Express REST API",
+    isMongoConnected,
     timestamp: new Date().toISOString(),
   });
 });
@@ -255,6 +306,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     service: "Kartly Full-Stack Express REST API",
+    isMongoConnected,
     timestamp: new Date().toISOString(),
   });
 });
@@ -264,7 +316,7 @@ app.get("/api/health", (req, res) => {
 // ==========================================
 
 // POST /auth/register & /api/auth/register
-app.post("/api/auth/register", (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
   const { name, email, phone, password, role = "CUSTOMER", ...details } = req.body || {};
 
   if (!name || (!email && !phone) || !password) {
@@ -304,6 +356,14 @@ app.post("/api/auth/register", (req, res) => {
 
   db.users.push(newUser);
   saveDb();
+
+  if (isMongoConnected) {
+    try {
+      await UserModel.create(newUser);
+    } catch (err) {
+      console.error("MongoDB user register sync error:", err.message);
+    }
+  }
 
   const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role }, JWT_SECRET, {
     expiresIn: "7d",
@@ -560,7 +620,7 @@ app.get("/api/products/:id", (req, res) => {
 });
 
 // ==========================================
-// 4. CART APIs
+// 4. CART APIs (FULL PERSISTENCE)
 // ==========================================
 
 // GET /cart & /api/cart
@@ -577,7 +637,7 @@ app.get("/api/cart", authenticateToken, (req, res) => {
 });
 
 // POST /cart/add & /api/cart/add
-app.post("/api/cart/add", authenticateToken, (req, res) => {
+app.post("/api/cart/add", authenticateToken, async (req, res) => {
   const { product, qty = 1, variant, productId, product_id, quantity } = req.body;
   const targetProduct = product || db.products.find((p) => p.id === (productId || product_id) || p.product_id === (productId || product_id));
   const activeQty = Number(qty || quantity || 1);
@@ -614,12 +674,26 @@ app.post("/api/cart/add", authenticateToken, (req, res) => {
   }
 
   saveDb();
+
   const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+
+  if (isMongoConnected) {
+    try {
+      await CartModel.findOneAndUpdate(
+        { user_id: userId },
+        { cart_id: `cart-${userId}`, user_id: userId, items: userCart },
+        { upsert: true }
+      );
+    } catch (e) {
+      console.error("MongoDB Cart sync error:", e.message);
+    }
+  }
+
   res.json({ success: true, message: "Item added to cart successfully", cart: userCart });
 });
 
 // PUT /cart/update & /api/cart/update
-app.put("/api/cart/update", authenticateToken, (req, res) => {
+app.put("/api/cart/update", authenticateToken, async (req, res) => {
   const { productId, product_id, qty, quantity } = req.body;
   const pId = productId || product_id;
   const activeQty = Number(qty !== undefined ? qty : quantity);
@@ -645,11 +719,24 @@ app.put("/api/cart/update", authenticateToken, (req, res) => {
 
   saveDb();
   const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+
+  if (isMongoConnected) {
+    try {
+      await CartModel.findOneAndUpdate(
+        { user_id: userId },
+        { cart_id: `cart-${userId}`, user_id: userId, items: userCart },
+        { upsert: true }
+      );
+    } catch (e) {
+      console.error("MongoDB Cart update error:", e.message);
+    }
+  }
+
   res.json({ success: true, message: "Cart updated", cart: userCart });
 });
 
 // DELETE /cart/remove & /api/cart/remove/:id
-app.delete("/api/cart/remove/:id", authenticateToken, (req, res) => {
+app.delete("/api/cart/remove/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id || req.user.user_id;
 
@@ -659,10 +746,19 @@ app.delete("/api/cart/remove/:id", authenticateToken, (req, res) => {
 
   saveDb();
   const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+
+  if (isMongoConnected) {
+    try {
+      await CartModel.findOneAndUpdate({ user_id: userId }, { items: userCart });
+    } catch (e) {
+      console.error("MongoDB Cart item remove error:", e.message);
+    }
+  }
+
   res.json({ success: true, message: "Item removed from cart", cart: userCart });
 });
 
-app.delete("/api/cart/remove", authenticateToken, (req, res) => {
+app.delete("/api/cart/remove", authenticateToken, async (req, res) => {
   const { productId, product_id, id } = req.body || {};
   const targetId = productId || product_id || id;
   const userId = req.user.id || req.user.user_id;
@@ -675,14 +771,32 @@ app.delete("/api/cart/remove", authenticateToken, (req, res) => {
   }
 
   const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+
+  if (isMongoConnected) {
+    try {
+      await CartModel.findOneAndUpdate({ user_id: userId }, { items: userCart });
+    } catch (e) {
+      console.error("MongoDB Cart remove error:", e.message);
+    }
+  }
+
   res.json({ success: true, message: "Item removed from cart", cart: userCart });
 });
 
 // DELETE /cart/clear & /api/cart/clear
-app.delete("/api/cart/clear", authenticateToken, (req, res) => {
+app.delete("/api/cart/clear", authenticateToken, async (req, res) => {
   const userId = req.user.id || req.user.user_id;
   db.cart = db.cart.filter((item) => item.userId !== userId && item.user_id !== userId);
   saveDb();
+
+  if (isMongoConnected) {
+    try {
+      await CartModel.findOneAndUpdate({ user_id: userId }, { items: [] });
+    } catch (e) {
+      console.error("MongoDB Cart clear error:", e.message);
+    }
+  }
+
   res.json({ success: true, message: "Cart cleared", cart: [] });
 });
 
@@ -698,7 +812,7 @@ app.get("/api/addresses", authenticateToken, (req, res) => {
 });
 
 // POST /addresses & /api/addresses
-app.post("/api/addresses", authenticateToken, (req, res) => {
+app.post("/api/addresses", authenticateToken, async (req, res) => {
   const { name, phone, house, street, address_line, city, state, pincode, type = "home", isDefault = false } = req.body;
   const userId = req.user.id || req.user.user_id;
 
@@ -731,17 +845,33 @@ app.post("/api/addresses", authenticateToken, (req, res) => {
   db.addresses.push(newAddress);
   saveDb();
 
+  if (isMongoConnected) {
+    try {
+      await AddressModel.create(newAddress);
+    } catch (e) {
+      console.error("MongoDB Address create error:", e.message);
+    }
+  }
+
   const userAddresses = db.addresses.filter((a) => a.userId === userId || a.user_id === userId);
   res.status(201).json({ success: true, address: newAddress, addresses: userAddresses });
 });
 
 // DELETE /addresses/:id & /api/addresses/:id
-app.delete("/api/addresses/:id", authenticateToken, (req, res) => {
+app.delete("/api/addresses/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id || req.user.user_id;
 
   db.addresses = db.addresses.filter((a) => !((a.userId === userId || a.user_id === userId) && (a.id === id || a.address_id === id)));
   saveDb();
+
+  if (isMongoConnected) {
+    try {
+      await AddressModel.deleteOne({ address_id: id });
+    } catch (e) {
+      console.error("MongoDB Address delete error:", e.message);
+    }
+  }
 
   const userAddresses = db.addresses.filter((a) => a.userId === userId || a.user_id === userId);
   res.json({ success: true, addresses: userAddresses });
@@ -846,11 +976,11 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
 });
 
 // ==========================================
-// 7. ORDER APIs
+// 7. ORDER APIs (PERSISTED IN DB)
 // ==========================================
 
 // POST /orders/place & /api/orders/place
-app.post("/api/orders/place", authenticateToken, (req, res) => {
+app.post("/api/orders/place", authenticateToken, async (req, res) => {
   const { items, address, paymentMethod, payment_method, paymentDetails, totals, isBuyNow } = req.body;
   const userId = req.user.id || req.user.user_id;
 
@@ -918,6 +1048,17 @@ app.post("/api/orders/place", authenticateToken, (req, res) => {
     db.cart = db.cart.filter((c) => c.userId !== userId && c.user_id !== userId);
   }
   saveDb();
+
+  if (isMongoConnected) {
+    try {
+      await OrderModel.create(newOrder);
+      if (!isBuyNow) {
+        await CartModel.findOneAndUpdate({ user_id: userId }, { items: [] });
+      }
+    } catch (e) {
+      console.error("MongoDB Order create error:", e.message);
+    }
+  }
 
   res.status(201).json({
     success: true,
@@ -996,7 +1137,7 @@ app.post("/api/payment/initiate", authenticateToken, (req, res) => {
 });
 
 // POST /payment/verify & /api/payment/verify
-app.post("/api/payment/verify", authenticateToken, (req, res) => {
+app.post("/api/payment/verify", authenticateToken, async (req, res) => {
   const { orderId, order_id, transactionId, status = "success" } = req.body;
   const targetId = orderId || order_id;
 
@@ -1012,6 +1153,17 @@ app.post("/api/payment/verify", authenticateToken, (req, res) => {
       transactionId,
     };
     saveDb();
+
+    if (isMongoConnected) {
+      try {
+        await OrderModel.findOneAndUpdate(
+          { order_id: targetId },
+          { payment_status: order.payment_status, order_status: "confirmed" }
+        );
+      } catch (e) {
+        console.error("MongoDB Order payment verify error:", e.message);
+      }
+    }
   }
 
   res.json({
