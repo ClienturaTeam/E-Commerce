@@ -30,7 +30,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   try {
     const res = await fetch(url, { ...options, headers });
@@ -47,10 +47,10 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 // ==========================================
 export async function registerApi(userData: {
   name: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   password?: string;
-  role: string;
+  role?: string;
   [key: string]: any;
 }) {
   const data = await request<{ success: boolean; token?: string; user?: any; message?: string }>("/auth/register", {
@@ -61,7 +61,7 @@ export async function registerApi(userData: {
   return data;
 }
 
-export async function loginApi(credentials: { emailOrPhone: string; password?: string; role?: string }) {
+export async function loginApi(credentials: { emailOrPhone?: string; email?: string; phone?: string; password?: string; role?: string }) {
   const data = await request<{ success: boolean; token?: string; user?: any; message?: string }>("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
@@ -97,20 +97,20 @@ export async function fetchProductByIdApi(id: string) {
 // CART APIs
 // ==========================================
 export async function fetchCartApi() {
-  return request<{ success: boolean; cart: any[] }>("/cart");
+  return request<{ success: boolean; cart: any[]; cart_id?: string; user_id?: string }>("/cart");
 }
 
 export async function addToCartApi(product: any, qty = 1, variant?: any) {
   return request<{ success: boolean; message: string; cart: any[] }>("/cart/add", {
     method: "POST",
-    body: JSON.stringify({ product, qty, variant }),
+    body: JSON.stringify({ product, product_id: product.id || product.product_id, qty, quantity: qty, variant }),
   });
 }
 
 export async function updateCartItemApi(productId: string, qty: number) {
   return request<{ success: boolean; message: string; cart: any[] }>("/cart/update", {
     method: "PUT",
-    body: JSON.stringify({ productId, qty }),
+    body: JSON.stringify({ productId, product_id: productId, qty, quantity: qty }),
   });
 }
 
@@ -147,9 +147,9 @@ export async function deleteAddressApi(id: string) {
 }
 
 // ==========================================
-// CHECKOUT & GST APIs
+// CHECKOUT APIs
 // ==========================================
-export async function checkoutApi(data: { items?: any[]; addressId?: string; couponCode?: string }) {
+export async function checkoutApi(data: { items?: any[]; addressId?: string; couponCode?: string; buyNowItem?: any }) {
   return request<{
     success: boolean;
     summary: {
@@ -161,6 +161,11 @@ export async function checkoutApi(data: { items?: any[]; addressId?: string; cou
       deliveryFee: number;
       couponDiscount: number;
       finalAmount: number;
+      total_amount?: number;
+      gst_amount?: number;
+      delivery_fee?: number;
+      platform_fee?: number;
+      final_amount?: number;
     };
     items: any[];
     address: any;
@@ -177,8 +182,10 @@ export async function placeOrderApi(orderData: {
   items: any[];
   address: any;
   paymentMethod: string;
+  payment_method?: string;
   paymentDetails?: any;
   totals?: any;
+  isBuyNow?: boolean;
 }) {
   return request<{ success: boolean; message: string; orderId: string; order: any }>("/orders/place", {
     method: "POST",
@@ -198,7 +205,9 @@ export async function fetchOrderStatusApi(id: string) {
   return request<{
     success: boolean;
     orderId: string;
+    order_id?: string;
     status: string;
+    order_status?: string;
     payment_status: string;
     timeline: any[];
     expectedDelivery: string;
@@ -210,6 +219,7 @@ export async function fetchOrderStatusApi(id: string) {
 // ==========================================
 export async function initiatePaymentApi(paymentData: {
   orderId: string;
+  order_id?: string;
   amount: number;
   paymentMethod?: string;
   upiId?: string;
@@ -230,6 +240,7 @@ export async function initiatePaymentApi(paymentData: {
 
 export async function verifyPaymentApi(verificationData: {
   orderId: string;
+  order_id?: string;
   transactionId: string;
   status?: string;
 }) {

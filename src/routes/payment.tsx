@@ -32,6 +32,7 @@ import {
 } from "@/components/store/store-context";
 import { products, inr } from "@/components/store/catalog";
 import { toast } from "sonner";
+import { verifyPaymentApi } from "@/lib/api";
 
 export const Route = createFileRoute("/payment")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -397,6 +398,9 @@ function PaymentPage() {
                 window.localStorage.setItem("kartly.lastOrderId", finalOrderId);
               }
             } catch {}
+            verifyPaymentApi({ orderId: finalOrderId, transactionId: `TXN-${Date.now()}`, status: "SUCCESS" }).catch((err) =>
+              console.error("verifyPaymentApi error:", err)
+            );
           }
 
           setIsProcessing(false);

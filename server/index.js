@@ -17,11 +17,27 @@ const JWT_SECRET = process.env.JWT_SECRET || "kartly-super-secret-key-2026";
 app.use(cors());
 app.use(express.json());
 
-// Initial database template
+// Enable dual route handling (support both /api/xxx and /xxx endpoints)
+app.use((req, res, next) => {
+  if (req.url !== "/health" && !req.url.startsWith("/api/")) {
+    req.originalUrl = req.url;
+    req.url = "/api" + req.url;
+  }
+  next();
+});
+
+// Database Schemas & Data Store
+// 1. USERS: user_id, name, email, phone, password, role
+// 2. PRODUCTS: product_id, name, category, description, base_price, variants[]
+// 3. CART: cart_id, user_id, items[{ product_id, variant, quantity, price }]
+// 4. ORDERS: order_id, user_id, items[], total_amount, gst_amount, delivery_fee, platform_fee, final_amount, address, payment_method, payment_status, order_status, created_at
+// 5. ADDRESSES: address_id, user_id, name, phone, address_line, city, pincode, type
+
 const defaultDb = {
   users: [
     {
       id: "usr-demo",
+      user_id: "usr-demo",
       name: "Kartly Demo User",
       email: "demo@kartly.com",
       phone: "9999999999",
@@ -31,6 +47,7 @@ const defaultDb = {
     },
     {
       id: "usr-customer",
+      user_id: "usr-customer",
       name: "Rahul Sharma",
       email: "customer@kartly.com",
       phone: "9876543210",
@@ -40,84 +57,47 @@ const defaultDb = {
     },
     {
       id: "usr-seller",
+      user_id: "usr-seller",
       name: "Apex Retailers Pvt Ltd",
       email: "seller@kartly.com",
       phone: "9876543211",
       password: "password123",
       role: "SELLER",
       shopName: "Apex Digital Hub",
-      businessType: "Electronics Retailer",
     },
     {
       id: "usr-admin",
-      name: "System Admin (Level 2)",
+      user_id: "usr-admin",
+      name: "System Admin",
       email: "admin@kartly.com",
       phone: "9876543212",
       password: "password123",
       role: "ADMIN",
-      employeeId: "ADM-9021",
-    },
-    {
-      id: "usr-superadmin",
-      name: "Root Super Admin",
-      email: "superadmin@kartly.com",
-      phone: "9876543213",
-      password: "password123",
-      role: "SUPER_ADMIN",
-      employeeId: "ROOT-0001",
-    },
-    {
-      id: "usr-warehouse",
-      name: "Rajesh Kumar (Packing Station)",
-      email: "warehouse@kartly.com",
-      phone: "9876543214",
-      password: "password123",
-      role: "WAREHOUSE",
-      employeeId: "WH-BLR-04",
-      stationId: "WH-BLR-04",
-    },
-    {
-      id: "usr-delivery",
-      name: "Vikram Singh (Rider #892)",
-      email: "delivery@kartly.com",
-      phone: "9876543215",
-      password: "password123",
-      role: "DELIVERY",
-      vehicleType: "Electric Two-Wheeler",
-      licenseNumber: "KA-01-2024-8921",
-    },
-    {
-      id: "usr-support",
-      name: "Ananya Roy (Senior Executive)",
-      email: "support@kartly.com",
-      phone: "9876543216",
-      password: "password123",
-      role: "SUPPORT",
-      employeeId: "SUP-4019",
-      department: "Tier-2 Escalations & Refunds",
-    },
-    {
-      id: "usr-finance",
-      name: "Finance Comptroller",
-      email: "finance@kartly.com",
-      phone: "9876543217",
-      password: "password123",
-      role: "FINANCE",
-      employeeId: "FIN-8802",
-      designation: "Chief Comptroller",
     },
   ],
-  products: [...INITIAL_PRODUCTS],
-  cart: [], // [{ id, userId, product, qty, variant }]
+  products: INITIAL_PRODUCTS.map((p) => ({
+    ...p,
+    product_id: p.id,
+    name: p.title,
+    base_price: p.price,
+    description: p.description || `${p.title} - High quality product from ${p.brand}.`,
+    variants: p.variants || [
+      { color: "Default", size: "Standard", price: p.price, stock: 50, images: [p.image] },
+    ],
+  })),
+  cart: [], // [{ cart_id, user_id, items: [{ product_id, product, variant, quantity, price }] }]
   wishlist: [], // [{ userId, productId }]
   addresses: [
     {
       id: "addr-1",
+      address_id: "addr-1",
       userId: "usr-demo",
+      user_id: "usr-demo",
       name: "Kartly Demo User",
       phone: "9999999999",
       house: "Flat 402, Sai Vardhini Heights",
       street: "Road No. 12, Banjara Hills",
+      address_line: "Flat 402, Sai Vardhini Heights, Road No. 12, Banjara Hills",
       city: "Hyderabad",
       state: "Telangana",
       pincode: "500034",
@@ -126,11 +106,14 @@ const defaultDb = {
     },
     {
       id: "addr-2",
+      address_id: "addr-2",
       userId: "usr-demo",
+      user_id: "usr-demo",
       name: "Kartly Demo User",
       phone: "9999999999",
       house: "Building 5B, Mindspace IT Park",
       street: "HITEC City",
+      address_line: "Building 5B, Mindspace IT Park, HITEC City",
       city: "Hyderabad",
       state: "Telangana",
       pincode: "500081",
@@ -140,13 +123,16 @@ const defaultDb = {
   ],
   orders: [
     {
-      id: "OD982410491",
-      order_id: "OD982410491",
+      id: "KARTLY-20260812-00124",
+      order_id: "KARTLY-20260812-00124",
       userId: "usr-demo",
+      user_id: "usr-demo",
       date: "12 Aug 2026",
       created_at: new Date().toISOString(),
-      order_status: "OUT_FOR_DELIVERY",
-      payment_status: "SUCCESS",
+      order_status: "out_for_delivery",
+      status: "OUT_FOR_DELIVERY",
+      payment_status: "success",
+      payment_method: "upi",
       expectedDelivery: "15 Aug 2026",
       subtotal: 13499,
       discount: 5500,
@@ -157,19 +143,20 @@ const defaultDb = {
       final_amount: 15938,
       items: [
         {
+          product_id: INITIAL_PRODUCTS[0]?.id || "nexon-note-5g",
           product: INITIAL_PRODUCTS[0],
           qty: 1,
+          quantity: 1,
+          price: INITIAL_PRODUCTS[0]?.price || 13499,
           priceAtPurchase: INITIAL_PRODUCTS[0]?.price || 13499,
         },
       ],
       address: {
-        id: "addr-1",
+        address_id: "addr-1",
         name: "Kartly Demo User",
         phone: "9999999999",
-        house: "Flat 402, Sai Vardhini Heights",
-        street: "Road No. 12, Banjara Hills",
+        address_line: "Flat 402, Sai Vardhini Heights, Road No. 12, Banjara Hills",
         city: "Hyderabad",
-        state: "Telangana",
         pincode: "500034",
         type: "home",
       },
@@ -177,25 +164,31 @@ const defaultDb = {
         method: "upi",
         providerName: "PhonePe",
         upiId: "demo@ybl",
-        status: "SUCCESS",
+        status: "success",
       },
       timeline: [
-        { status: "Placed", date: "12 Aug 2026", time: "10:30 AM", completed: true },
-        { status: "Confirmed", date: "12 Aug 2026", time: "11:00 AM", completed: true },
-        { status: "Shipped", date: "13 Aug 2026", time: "09:00 AM", completed: true },
-        { status: "Out for Delivery", date: "13 Aug 2026", time: "02:30 PM", completed: true },
-        { status: "Delivered", date: "15 Aug 2026", time: "Pending", completed: false },
+        { status: "placed", date: "12 Aug 2026", time: "10:30 AM", completed: true },
+        { status: "confirmed", date: "12 Aug 2026", time: "11:00 AM", completed: true },
+        { status: "shipped", date: "13 Aug 2026", time: "09:00 AM", completed: true },
+        { status: "out_for_delivery", date: "13 Aug 2026", time: "02:30 PM", completed: true },
+        { status: "delivered", date: "15 Aug 2026", time: "Pending", completed: false },
       ],
     },
   ],
 };
 
-// Load DB from file or save initial
+// Load DB from persistent JSON file
 let db = defaultDb;
 if (fs.existsSync(DB_FILE)) {
   try {
     const fileData = fs.readFileSync(DB_FILE, "utf-8");
     db = JSON.parse(fileData);
+    if (!db.users) db.users = defaultDb.users;
+    if (!db.products) db.products = defaultDb.products;
+    if (!db.cart) db.cart = defaultDb.cart;
+    if (!db.addresses) db.addresses = defaultDb.addresses;
+    if (!db.orders) db.orders = defaultDb.orders;
+    if (!db.wishlist) db.wishlist = defaultDb.wishlist;
   } catch (err) {
     console.error("Failed to load db.json, starting with default DB:", err);
   }
@@ -226,13 +219,13 @@ function getGstRateForCategory(category = "") {
   return 0.18; // Default 18%
 }
 
-// Helper: Auth middleware
+// Authentication Token Middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    req.user = db.users[0]; // Fallback to demo user if no token
+    req.user = db.users[0]; // Fallback to demo user if no token passed
     return next();
   }
 
@@ -241,7 +234,7 @@ function authenticateToken(req, res, next) {
       req.user = db.users[0];
       return next();
     }
-    const foundUser = db.users.find((u) => u.id === decoded.id);
+    const foundUser = db.users.find((u) => u.id === decoded.id || u.user_id === decoded.id);
     req.user = foundUser || db.users[0];
     next();
   });
@@ -250,33 +243,40 @@ function authenticateToken(req, res, next) {
 // ==========================================
 // 1. HEALTH & UTILITY API
 // ==========================================
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "Kartly Full-Stack Express REST API",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    service: "Kartly Full-Stack E-Commerce Express API",
+    service: "Kartly Full-Stack Express REST API",
     timestamp: new Date().toISOString(),
   });
 });
 
 // ==========================================
-// 1.5 AUTHENTICATION API
+// 2. AUTHENTICATION APIs
 // ==========================================
 
-// POST /api/auth/register -> Register new user with role & role-specific details
+// POST /auth/register & /api/auth/register
 app.post("/api/auth/register", (req, res) => {
-  const { name, email, phone, password, role, ...roleDetails } = req.body || {};
+  const { name, email, phone, password, role = "CUSTOMER", ...details } = req.body || {};
 
-  if (!name || !email || !phone || !password || !role) {
+  if (!name || (!email && !phone) || !password) {
     return res.status(400).json({
       success: false,
-      message: "Full Name, Email, Phone Number, Password, and Role are required.",
+      message: "Name, email or phone number, and password are required.",
     });
   }
 
-  const cleanEmail = email.toString().toLowerCase().trim();
-  const cleanPhone = phone.toString().replace(/\D/g, "");
+  const cleanEmail = email ? email.toString().toLowerCase().trim() : `${phone}@kartly.com`;
+  const cleanPhone = phone ? phone.toString().replace(/\D/g, "") : "9999999999";
 
-  // Check if account already exists
   const existingUser = db.users.find(
     (u) => u.email?.toLowerCase().trim() === cleanEmail || (cleanPhone && u.phone?.replace(/\D/g, "") === cleanPhone)
   );
@@ -284,19 +284,22 @@ app.post("/api/auth/register", (req, res) => {
   if (existingUser) {
     return res.status(400).json({
       success: false,
-      message: "Account already exists with this email address or phone number.",
+      message: "User account with this email address or phone already exists.",
     });
   }
 
+  const userId = `usr-${Date.now()}`;
   const newUser = {
-    id: `usr-${Date.now()}`,
+    id: userId,
+    user_id: userId,
     name: name.toString().trim(),
     email: cleanEmail,
     phone: cleanPhone,
     password: password.toString(),
     role: role.toString().toUpperCase(),
-    createdAt: new Date().toISOString(),
-    ...roleDetails,
+    rewardPoints: 100,
+    created_at: new Date().toISOString(),
+    ...details,
   };
 
   db.users.push(newUser);
@@ -310,28 +313,20 @@ app.post("/api/auth/register", (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: `Account created successfully for ${role} portal.`,
+    message: "Registration successful!",
     token,
     user: userWithoutPassword,
   });
 });
 
-// POST /api/auth/login -> Authenticate user by email/phone + password
+// POST /auth/login & /api/auth/login
 app.post("/api/auth/login", (req, res) => {
-  const { emailOrPhone, password, role } = req.body || {};
-
-  if (!emailOrPhone) {
-    return res.status(400).json({
-      success: false,
-      message: "Email address or Mobile number is required.",
-    });
-  }
-
-  const query = emailOrPhone.toString().toLowerCase().trim();
-  const digits = emailOrPhone.toString().replace(/\D/g, "");
+  const { emailOrPhone, email, phone, password, role } = req.body || {};
+  const queryVal = (emailOrPhone || email || phone || "").toString().toLowerCase().trim();
+  const digits = queryVal.replace(/\D/g, "");
 
   let foundUser = db.users.find((u) => {
-    const matchEmail = u.email?.toLowerCase().trim() === query;
+    const matchEmail = u.email?.toLowerCase().trim() === queryVal;
     const matchPhone = digits.length >= 7 && u.phone?.replace(/\D/g, "") === digits;
     return matchEmail || matchPhone;
   });
@@ -343,14 +338,14 @@ app.post("/api/auth/login", (req, res) => {
   if (!foundUser) {
     return res.status(401).json({
       success: false,
-      message: "Incorrect credentials. No registered user found.",
+      message: "Invalid credentials. No user found with this email/phone.",
     });
   }
 
   if (password && foundUser.password && foundUser.password !== password.toString()) {
     return res.status(401).json({
       success: false,
-      message: "Incorrect credentials. Invalid password.",
+      message: "Invalid credentials. Incorrect password.",
     });
   }
 
@@ -366,13 +361,13 @@ app.post("/api/auth/login", (req, res) => {
 
   res.json({
     success: true,
-    message: "Login successful.",
+    message: "Login successful!",
     token,
     user: userWithoutPassword,
   });
 });
 
-// GET /api/auth/me -> Current user session lookup
+// GET /auth/me & /api/auth/me
 app.get("/api/auth/me", authenticateToken, (req, res) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: "Not authenticated" });
@@ -385,31 +380,53 @@ app.get("/api/auth/me", authenticateToken, (req, res) => {
 });
 
 // ==========================================
-// 2. PRODUCTS API
+// 3. PRODUCT APIs
 // ==========================================
 
-// GET /api/products -> List & Filter
+// GET /products & /api/products
 app.get("/api/products", (req, res) => {
   const { category, q, brand } = req.query;
   let result = db.products;
 
-  if (category && category.toLowerCase() !== "all" && category.toLowerCase() !== "for you") {
-    result = result.filter(
-      (p) => p.category.toLowerCase() === category.toString().toLowerCase()
-    );
+  if (category && category.toString().toLowerCase() !== "all" && category.toString().toLowerCase() !== "for you") {
+    const targetCat = category.toString().toLowerCase().trim();
+
+    result = result.filter((p) => {
+      const mainCat = (p.category || "").toLowerCase();
+      const subCat = (p.subCategory || "").toLowerCase();
+      const fashionCat = (p.fashionCategory || "").toLowerCase();
+
+      if (targetCat === "mens" || targetCat === "men") {
+        return subCat === "men" || fashionCat === "men" || mainCat.includes("men");
+      }
+      if (targetCat === "womens" || targetCat === "women") {
+        return subCat === "women" || fashionCat === "women" || mainCat.includes("women");
+      }
+      if (targetCat === "kids") {
+        return subCat === "kids" || fashionCat === "kids" || mainCat.includes("kid");
+      }
+
+      return (
+        mainCat === targetCat ||
+        subCat === targetCat ||
+        fashionCat === targetCat ||
+        mainCat.includes(targetCat) ||
+        targetCat.includes(mainCat)
+      );
+    });
   }
 
   if (brand) {
-    result = result.filter((p) => p.brand.toLowerCase() === brand.toString().toLowerCase());
+    result = result.filter((p) => (p.brand || "").toLowerCase() === brand.toString().toLowerCase());
   }
 
   if (q) {
     const searchTerm = q.toString().toLowerCase().trim();
     result = result.filter(
       (p) =>
-        p.title.toLowerCase().includes(searchTerm) ||
-        p.brand.toLowerCase().includes(searchTerm) ||
-        p.category.toLowerCase().includes(searchTerm)
+        (p.title || p.name || "").toLowerCase().includes(searchTerm) ||
+        (p.brand || "").toLowerCase().includes(searchTerm) ||
+        (p.category || "").toLowerCase().includes(searchTerm)
     );
   }
 
@@ -420,10 +437,10 @@ app.get("/api/products", (req, res) => {
   });
 });
 
-// GET /api/products/:id -> Single product lookup
+// GET /products/:id & /api/products/:id
 app.get("/api/products/:id", (req, res) => {
   const { id } = req.params;
-  const product = db.products.find((p) => p.id === id);
+  const product = db.products.find((p) => p.id === id || p.product_id === id);
 
   if (!product) {
     return res.status(404).json({ success: false, message: "Product not found" });
@@ -433,214 +450,213 @@ app.get("/api/products/:id", (req, res) => {
 });
 
 // ==========================================
-// 3. AUTHENTICATION API
+// 4. CART APIs
 // ==========================================
 
-// POST /api/auth/register
-app.post("/api/auth/register", (req, res) => {
-  const { name, email, phone, password } = req.body;
-
-  if (!name || (!email && !phone) || !password) {
-    return res.status(400).json({ success: false, message: "Name, email/phone, and password are required" });
-  }
-
-  const existing = db.users.find(
-    (u) => (email && u.email.toLowerCase() === email.toLowerCase()) || (phone && u.phone === phone)
-  );
-
-  if (existing) {
-    return res.status(400).json({ success: false, message: "User with this email or phone already exists" });
-  }
-
-  const newUser = {
-    id: `usr-${Date.now()}`,
-    user_id: `usr-${Date.now()}`,
-    name,
-    email: email || `${phone}@kartly.com`,
-    phone: phone || "9999999999",
-    password,
-    rewardPoints: 100,
-  };
-
-  db.users.push(newUser);
-  saveDb();
-
-  const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: "7d" });
-
-  res.status(201).json({
-    success: true,
-    message: "Registration successful!",
-    user: { id: newUser.id, name: newUser.name, email: newUser.email, phone: newUser.phone, rewardPoints: newUser.rewardPoints },
-    token,
-  });
-});
-
-// POST /api/auth/login
-app.post("/api/auth/login", (req, res) => {
-  const { emailOrPhone, email, phone, password } = req.body;
-  const queryVal = (emailOrPhone || email || phone || "").toString().toLowerCase().trim();
-
-  const user = db.users.find(
-    (u) =>
-      (u.email.toLowerCase() === queryVal || u.phone === queryVal) &&
-      (u.password === password || !password)
-  );
-
-  if (!user) {
-    return res.status(401).json({ success: false, message: "Invalid credentials" });
-  }
-
-  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-
-  res.json({
-    success: true,
-    message: "Login successful!",
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, rewardPoints: user.rewardPoints },
-    token,
-  });
-});
-
-// GET /api/auth/me
-app.get("/api/auth/me", authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    user: { id: req.user.id, name: req.user.name, email: req.user.email, phone: req.user.phone, rewardPoints: req.user.rewardPoints },
-  });
-});
-
-// ==========================================
-// 4. CART API
-// ==========================================
-
-// GET /api/cart
+// GET /cart & /api/cart
 app.get("/api/cart", authenticateToken, (req, res) => {
-  const userCart = db.cart.filter((item) => item.userId === req.user.id);
+  const userId = req.user.id || req.user.user_id;
+  const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+
   res.json({
     success: true,
+    cart_id: `cart-${userId}`,
+    user_id: userId,
     cart: userCart,
   });
 });
 
-// POST /api/cart/add
+// POST /cart/add & /api/cart/add
 app.post("/api/cart/add", authenticateToken, (req, res) => {
-  const { product, qty = 1, variant } = req.body;
+  const { product, qty = 1, variant, productId, product_id, quantity } = req.body;
+  const targetProduct = product || db.products.find((p) => p.id === (productId || product_id) || p.product_id === (productId || product_id));
+  const activeQty = Number(qty || quantity || 1);
 
-  if (!product || !product.id) {
-    return res.status(400).json({ success: false, message: "Product is required" });
+  if (!targetProduct || (!targetProduct.id && !targetProduct.product_id)) {
+    return res.status(400).json({ success: false, message: "Valid product is required to add to cart." });
   }
 
+  const userId = req.user.id || req.user.user_id;
+  const pId = targetProduct.id || targetProduct.product_id;
+
   const existingIndex = db.cart.findIndex(
-    (item) => item.userId === req.user.id && item.product.id === product.id
+    (item) => (item.userId === userId || item.user_id === userId) && (item.product?.id === pId || item.product_id === pId)
   );
 
   if (existingIndex >= 0) {
-    db.cart[existingIndex].qty += qty;
+    db.cart[existingIndex].qty += activeQty;
+    db.cart[existingIndex].quantity += activeQty;
     if (variant) db.cart[existingIndex].variant = variant;
   } else {
+    const cartItemId = `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     db.cart.push({
-      id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      userId: req.user.id,
-      product,
-      qty,
-      variant,
+      id: cartItemId,
+      cart_id: `cart-${userId}`,
+      userId,
+      user_id: userId,
+      product_id: pId,
+      product: targetProduct,
+      qty: activeQty,
+      quantity: activeQty,
+      price: targetProduct.price || targetProduct.base_price || 0,
+      variant: variant || { color: "Default", size: "Standard" },
     });
   }
 
   saveDb();
-  const userCart = db.cart.filter((item) => item.userId === req.user.id);
-  res.json({ success: true, message: "Item added to cart", cart: userCart });
+  const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+  res.json({ success: true, message: "Item added to cart successfully", cart: userCart });
 });
 
-// PUT /api/cart/update
+// PUT /cart/update & /api/cart/update
 app.put("/api/cart/update", authenticateToken, (req, res) => {
-  const { productId, qty } = req.body;
+  const { productId, product_id, qty, quantity } = req.body;
+  const pId = productId || product_id;
+  const activeQty = Number(qty !== undefined ? qty : quantity);
+  const userId = req.user.id || req.user.user_id;
 
-  if (!productId) {
-    return res.status(400).json({ success: false, message: "productId required" });
+  if (!pId) {
+    return res.status(400).json({ success: false, message: "productId is required." });
   }
 
-  if (qty <= 0) {
-    db.cart = db.cart.filter((item) => !(item.userId === req.user.id && item.product.id === productId));
+  if (activeQty <= 0) {
+    db.cart = db.cart.filter(
+      (item) => !((item.userId === userId || item.user_id === userId) && (item.product?.id === pId || item.product_id === pId || item.id === pId))
+    );
   } else {
-    const item = db.cart.find((item) => item.userId === req.user.id && item.product.id === productId);
-    if (item) item.qty = qty;
+    const item = db.cart.find(
+      (item) => (item.userId === userId || item.user_id === userId) && (item.product?.id === pId || item.product_id === pId || item.id === pId)
+    );
+    if (item) {
+      item.qty = activeQty;
+      item.quantity = activeQty;
+    }
   }
 
   saveDb();
-  const userCart = db.cart.filter((item) => item.userId === req.user.id);
+  const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
   res.json({ success: true, message: "Cart updated", cart: userCart });
 });
 
-// DELETE /api/cart/remove/:id
+// DELETE /cart/remove & /api/cart/remove/:id
 app.delete("/api/cart/remove/:id", authenticateToken, (req, res) => {
   const { id } = req.params;
-  db.cart = db.cart.filter((item) => !(item.userId === req.user.id && (item.product.id === id || item.id === id)));
+  const userId = req.user.id || req.user.user_id;
+
+  db.cart = db.cart.filter(
+    (item) => !((item.userId === userId || item.user_id === userId) && (item.product?.id === id || item.product_id === id || item.id === id))
+  );
+
   saveDb();
-  const userCart = db.cart.filter((item) => item.userId === req.user.id);
+  const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
   res.json({ success: true, message: "Item removed from cart", cart: userCart });
 });
 
-// DELETE /api/cart/clear
+app.delete("/api/cart/remove", authenticateToken, (req, res) => {
+  const { productId, product_id, id } = req.body || {};
+  const targetId = productId || product_id || id;
+  const userId = req.user.id || req.user.user_id;
+
+  if (targetId) {
+    db.cart = db.cart.filter(
+      (item) => !((item.userId === userId || item.user_id === userId) && (item.product?.id === targetId || item.product_id === targetId || item.id === targetId))
+    );
+    saveDb();
+  }
+
+  const userCart = db.cart.filter((item) => item.userId === userId || item.user_id === userId);
+  res.json({ success: true, message: "Item removed from cart", cart: userCart });
+});
+
+// DELETE /cart/clear & /api/cart/clear
 app.delete("/api/cart/clear", authenticateToken, (req, res) => {
-  db.cart = db.cart.filter((item) => item.userId !== req.user.id);
+  const userId = req.user.id || req.user.user_id;
+  db.cart = db.cart.filter((item) => item.userId !== userId && item.user_id !== userId);
   saveDb();
   res.json({ success: true, message: "Cart cleared", cart: [] });
 });
 
 // ==========================================
-// 5. ADDRESSES API
+// 5. ADDRESSES APIs
 // ==========================================
+
+// GET /addresses & /api/addresses
 app.get("/api/addresses", authenticateToken, (req, res) => {
-  const userAddresses = db.addresses.filter((a) => a.userId === req.user.id);
+  const userId = req.user.id || req.user.user_id;
+  const userAddresses = db.addresses.filter((a) => a.userId === userId || a.user_id === userId);
   res.json({ success: true, addresses: userAddresses });
 });
 
+// POST /addresses & /api/addresses
 app.post("/api/addresses", authenticateToken, (req, res) => {
-  const { name, phone, house, street, city, state, pincode, type = "home", isDefault = false } = req.body;
+  const { name, phone, house, street, address_line, city, state, pincode, type = "home", isDefault = false } = req.body;
+  const userId = req.user.id || req.user.user_id;
 
   if (isDefault) {
     db.addresses.forEach((a) => {
-      if (a.userId === req.user.id) a.isDefault = false;
+      if (a.userId === userId || a.user_id === userId) a.isDefault = false;
     });
   }
 
+  const addrId = `addr-${Date.now()}`;
+  const formattedAddressLine = address_line || `${house || ""}, ${street || ""}, ${city || "Hyderabad"}`;
+
   const newAddress = {
-    id: `addr-${Date.now()}`,
-    userId: req.user.id,
+    id: addrId,
+    address_id: addrId,
+    userId,
+    user_id: userId,
     name: name || req.user.name,
     phone: phone || req.user.phone,
     house: house || "",
     street: street || "",
+    address_line: formattedAddressLine,
     city: city || "Hyderabad",
     state: state || "Telangana",
     pincode: pincode || "500034",
     type,
-    isDefault: isDefault || db.addresses.filter((a) => a.userId === req.user.id).length === 0,
+    isDefault: isDefault || db.addresses.filter((a) => a.userId === userId || a.user_id === userId).length === 0,
   };
 
   db.addresses.push(newAddress);
   saveDb();
-  const userAddresses = db.addresses.filter((a) => a.userId === req.user.id);
+
+  const userAddresses = db.addresses.filter((a) => a.userId === userId || a.user_id === userId);
   res.status(201).json({ success: true, address: newAddress, addresses: userAddresses });
 });
 
+// DELETE /addresses/:id & /api/addresses/:id
 app.delete("/api/addresses/:id", authenticateToken, (req, res) => {
   const { id } = req.params;
-  db.addresses = db.addresses.filter((a) => !(a.userId === req.user.id && a.id === id));
+  const userId = req.user.id || req.user.user_id;
+
+  db.addresses = db.addresses.filter((a) => !((a.userId === userId || a.user_id === userId) && (a.id === id || a.address_id === id)));
   saveDb();
-  const userAddresses = db.addresses.filter((a) => a.userId === req.user.id);
+
+  const userAddresses = db.addresses.filter((a) => a.userId === userId || a.user_id === userId);
   res.json({ success: true, addresses: userAddresses });
 });
 
 // ==========================================
-// 6. CHECKOUT & GST CALCULATION API
+// 6. CHECKOUT APIs
 // ==========================================
+
+// POST /checkout & /api/checkout
 app.post("/api/checkout", authenticateToken, (req, res) => {
-  const { items, addressId, couponCode } = req.body;
-  const checkoutItems = items || db.cart.filter((c) => c.userId === req.user.id);
+  const { items, addressId, couponCode, buyNowItem } = req.body;
+  const userId = req.user.id || req.user.user_id;
+
+  let checkoutItems = items;
+  if (!checkoutItems || checkoutItems.length === 0) {
+    if (buyNowItem) {
+      checkoutItems = [buyNowItem];
+    } else {
+      checkoutItems = db.cart.filter((c) => c.userId === userId || c.user_id === userId);
+    }
+  }
 
   if (!checkoutItems || checkoutItems.length === 0) {
-    return res.status(400).json({ success: false, message: "Cart is empty" });
+    return res.status(400).json({ success: false, message: "Cart is empty. Add items to checkout." });
   }
 
   let subtotal = 0;
@@ -648,11 +664,13 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
   let gstTotal = 0;
 
   const itemBreakdown = checkoutItems.map((ci) => {
-    const p = ci.product;
-    const qty = ci.qty || 1;
-    const itemSubtotal = p.price * qty;
-    const itemMrp = (p.mrp || p.price) * qty;
+    const p = ci.product || ci;
+    const qty = ci.qty || ci.quantity || 1;
+    const price = Number(p.price || p.base_price || 0);
+    const mrp = Number(p.mrp || p.price || p.base_price || 0);
 
+    const itemSubtotal = price * qty;
+    const itemMrp = mrp * qty;
     const rate = getGstRateForCategory(p.category || "");
     const itemGst = Math.round(itemSubtotal * rate);
 
@@ -661,12 +679,14 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
     gstTotal += itemGst;
 
     return {
-      product_id: p.id,
-      title: p.title,
-      price: p.price,
-      mrp: p.mrp || p.price,
+      product_id: p.id || p.product_id,
+      title: p.title || p.name,
+      price,
+      mrp,
       qty,
+      quantity: qty,
       category: p.category,
+      variant: ci.variant || { color: "Default", size: "Standard" },
       gstRate: Math.round(rate * 100),
       gstAmount: itemGst,
       total: itemSubtotal,
@@ -674,7 +694,7 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
   });
 
   const platformFee = 10;
-  const deliveryFee = subtotal >= 500 ? 0 : 40;
+  const deliveryFee = subtotal >= 499 || subtotal === 0 ? 0 : 40;
 
   let couponDiscount = 0;
   if (couponCode === "WELCOME10") {
@@ -689,8 +709,8 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
   const discount = Math.max(0, mrpTotal - subtotal);
 
   const selectedAddress =
-    db.addresses.find((a) => a.id === addressId && a.userId === req.user.id) ||
-    db.addresses.find((a) => a.userId === req.user.id && a.isDefault) ||
+    db.addresses.find((a) => (a.id === addressId || a.address_id === addressId) && (a.userId === userId || a.user_id === userId)) ||
+    db.addresses.find((a) => (a.userId === userId || a.user_id === userId) && a.isDefault) ||
     db.addresses[0];
 
   res.json({
@@ -704,6 +724,11 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
       deliveryFee,
       couponDiscount,
       finalAmount,
+      total_amount: subtotal,
+      gst_amount: gstTotal,
+      delivery_fee: deliveryFee,
+      platform_fee: platformFee,
+      final_amount: finalAmount,
     },
     items: itemBreakdown,
     address: selectedAddress,
@@ -711,16 +736,21 @@ app.post("/api/checkout", authenticateToken, (req, res) => {
 });
 
 // ==========================================
-// 7. ORDERS & TRACKING API
+// 7. ORDER APIs
 // ==========================================
 
-// POST /api/orders/place
+// POST /orders/place & /api/orders/place
 app.post("/api/orders/place", authenticateToken, (req, res) => {
-  const { items, address, paymentMethod, paymentDetails, totals } = req.body;
-  const orderItems = items || db.cart.filter((c) => c.userId === req.user.id);
+  const { items, address, paymentMethod, payment_method, paymentDetails, totals, isBuyNow } = req.body;
+  const userId = req.user.id || req.user.user_id;
+
+  let orderItems = items;
+  if (!orderItems || orderItems.length === 0) {
+    orderItems = db.cart.filter((c) => c.userId === userId || c.user_id === userId);
+  }
 
   if (!orderItems || orderItems.length === 0) {
-    return res.status(400).json({ success: false, message: "No items to order" });
+    return res.status(400).json({ success: false, message: "No items to order." });
   }
 
   const orderId = `KARTLY-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(
@@ -733,46 +763,50 @@ app.post("/api/orders/place", authenticateToken, (req, res) => {
 
   const formattedDate = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const formattedDelivery = deliveryDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const activePaymentMethod = (paymentMethod || payment_method || "upi").toLowerCase();
 
   const newOrder = {
     id: orderId,
     order_id: orderId,
-    userId: req.user.id,
-    user_id: req.user.id,
+    userId,
+    user_id: userId,
     date: formattedDate,
     created_at: now.toISOString(),
-    order_status: "PLACED",
+    order_status: "placed",
     status: "PLACED",
-    payment_status: paymentMethod === "cod" ? "PENDING" : "SUCCESS",
+    payment_status: activePaymentMethod === "cod" ? "pending" : "success",
+    payment_method: activePaymentMethod,
     expectedDelivery: formattedDelivery,
     items: orderItems,
-    address: address || db.addresses.find((a) => a.userId === req.user.id && a.isDefault) || db.addresses[0],
+    address: address || db.addresses.find((a) => (a.userId === userId || a.user_id === userId) && a.isDefault) || db.addresses[0],
     payment: {
-      method: paymentMethod || "upi",
-      status: paymentMethod === "cod" ? "PENDING" : "SUCCESS",
+      method: activePaymentMethod,
+      status: activePaymentMethod === "cod" ? "pending" : "success",
       details: paymentDetails || {},
     },
     subtotal: totals?.subtotal || 0,
     mrpTotal: totals?.mrpTotal || 0,
     discount: totals?.discount || 0,
-    gst_amount: totals?.gstTotal || 0,
-    platform_fee: totals?.platformFee || 10,
-    delivery_fee: totals?.deliveryFee || 0,
+    gst_amount: totals?.gstTotal || totals?.gst_amount || 0,
+    platform_fee: totals?.platformFee || totals?.platform_fee || 10,
+    delivery_fee: totals?.deliveryFee || totals?.delivery_fee || 0,
     total_amount: totals?.finalAmount || totals?.subtotal || 0,
-    final_amount: totals?.finalAmount || totals?.subtotal || 0,
+    final_amount: totals?.finalAmount || totals?.final_amount || totals?.subtotal || 0,
     timeline: [
-      { status: "Placed", date: formattedDate, time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), completed: true },
-      { status: "Confirmed", date: formattedDate, time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), completed: true },
-      { status: "Shipped", date: formattedDelivery, time: "Expected", completed: false },
-      { status: "Out for Delivery", date: formattedDelivery, time: "Expected", completed: false },
-      { status: "Delivered", date: formattedDelivery, time: "Expected", completed: false },
+      { status: "placed", date: formattedDate, time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), completed: true },
+      { status: "confirmed", date: formattedDate, time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), completed: true },
+      { status: "shipped", date: formattedDelivery, time: "Expected", completed: false },
+      { status: "out_for_delivery", date: formattedDelivery, time: "Expected", completed: false },
+      { status: "delivered", date: formattedDelivery, time: "Expected", completed: false },
     ],
   };
 
   db.orders.unshift(newOrder);
 
-  // Clear user's cart after order placement
-  db.cart = db.cart.filter((c) => c.userId !== req.user.id);
+  // Clear cart if not buy-now flow
+  if (!isBuyNow) {
+    db.cart = db.cart.filter((c) => c.userId !== userId && c.user_id !== userId);
+  }
   saveDb();
 
   res.status(201).json({
@@ -783,9 +817,11 @@ app.post("/api/orders/place", authenticateToken, (req, res) => {
   });
 });
 
-// GET /api/orders -> List user orders
+// GET /orders & /api/orders
 app.get("/api/orders", authenticateToken, (req, res) => {
-  const userOrders = db.orders.filter((o) => o.userId === req.user.id);
+  const userId = req.user.id || req.user.user_id;
+  const userOrders = db.orders.filter((o) => o.userId === userId || o.user_id === userId);
+
   res.json({
     success: true,
     count: userOrders.length,
@@ -793,7 +829,7 @@ app.get("/api/orders", authenticateToken, (req, res) => {
   });
 });
 
-// GET /api/orders/:id -> Single order detail
+// GET /orders/:id & /api/orders/:id
 app.get("/api/orders/:id", authenticateToken, (req, res) => {
   const { id } = req.params;
   const order = db.orders.find((o) => o.id === id || o.order_id === id);
@@ -805,7 +841,7 @@ app.get("/api/orders/:id", authenticateToken, (req, res) => {
   res.json({ success: true, order });
 });
 
-// GET /api/orders/:id/status -> Real-time status lookup
+// GET /orders/:id/status & /api/orders/:id/status
 app.get("/api/orders/:id/status", (req, res) => {
   const { id } = req.params;
   const order = db.orders.find((o) => o.id === id || o.order_id === id);
@@ -816,8 +852,10 @@ app.get("/api/orders/:id/status", (req, res) => {
 
   res.json({
     success: true,
-    orderId: order.id,
+    orderId: order.id || order.order_id,
+    order_id: order.id || order.order_id,
     status: order.order_status || order.status,
+    order_status: order.order_status || order.status,
     payment_status: order.payment_status,
     timeline: order.timeline,
     expectedDelivery: order.expectedDelivery,
@@ -825,39 +863,42 @@ app.get("/api/orders/:id/status", (req, res) => {
 });
 
 // ==========================================
-// 8. PAYMENT SIMULATION API
+// 8. PAYMENT APIs
 // ==========================================
 
-// POST /api/payment/initiate
+// POST /payment/initiate & /api/payment/initiate
 app.post("/api/payment/initiate", authenticateToken, (req, res) => {
-  const { orderId, amount, paymentMethod = "upi", upiId } = req.body;
+  const { orderId, order_id, amount, paymentMethod = "upi", upiId } = req.body;
+  const targetId = orderId || order_id;
 
   const txnId = `TXN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   res.json({
     success: true,
-    message: "Payment initiated",
+    message: "Payment initiated successfully",
     transactionId: txnId,
-    orderId,
+    orderId: targetId,
+    order_id: targetId,
     amount,
     status: "INITIATED",
-    redirectUrl: `/payment?orderId=${orderId}&txnId=${txnId}`,
+    redirectUrl: `/payment?orderId=${targetId}&txnId=${txnId}`,
   });
 });
 
-// POST /api/payment/verify
+// POST /payment/verify & /api/payment/verify
 app.post("/api/payment/verify", authenticateToken, (req, res) => {
-  const { orderId, transactionId, status = "SUCCESS" } = req.body;
+  const { orderId, order_id, transactionId, status = "success" } = req.body;
+  const targetId = orderId || order_id;
 
-  const order = db.orders.find((o) => o.id === orderId || o.order_id === orderId);
+  const order = db.orders.find((o) => o.id === targetId || o.order_id === targetId);
 
   if (order) {
-    order.payment_status = status;
-    order.order_status = "CONFIRMED";
+    order.payment_status = status.toLowerCase() === "success" ? "success" : "failed";
+    order.order_status = "confirmed";
     order.status = "CONFIRMED";
     order.payment = {
       ...(order.payment || {}),
-      status,
+      status: status.toLowerCase() === "success" ? "success" : "failed",
       transactionId,
     };
     saveDb();
@@ -866,33 +907,36 @@ app.post("/api/payment/verify", authenticateToken, (req, res) => {
   res.json({
     success: true,
     message: "Payment verified successfully",
-    payment_status: status,
+    payment_status: order?.payment_status || "success",
     order,
   });
 });
 
 // ==========================================
-// 9. WISHLIST API
+// 9. WISHLIST APIs
 // ==========================================
+
 app.get("/api/wishlist", authenticateToken, (req, res) => {
-  const userWishlist = db.wishlist.filter((w) => w.userId === req.user.id).map((w) => w.productId);
+  const userId = req.user.id || req.user.user_id;
+  const userWishlist = db.wishlist.filter((w) => w.userId === userId || w.user_id === userId).map((w) => w.productId);
   res.json({ success: true, wishlist: userWishlist });
 });
 
 app.post("/api/wishlist/toggle", authenticateToken, (req, res) => {
   const { productId } = req.body;
-  if (!productId) return res.status(400).json({ success: false, message: "productId required" });
+  const userId = req.user.id || req.user.user_id;
+  if (!productId) return res.status(400).json({ success: false, message: "productId is required" });
 
-  const existingIndex = db.wishlist.findIndex((w) => w.userId === req.user.id && w.productId === productId);
+  const existingIndex = db.wishlist.findIndex((w) => (w.userId === userId || w.user_id === userId) && w.productId === productId);
 
   if (existingIndex >= 0) {
     db.wishlist.splice(existingIndex, 1);
   } else {
-    db.wishlist.push({ userId: req.user.id, productId });
+    db.wishlist.push({ userId, user_id: userId, productId });
   }
 
   saveDb();
-  const userWishlist = db.wishlist.filter((w) => w.userId === req.user.id).map((w) => w.productId);
+  const userWishlist = db.wishlist.filter((w) => w.userId === userId || w.user_id === userId).map((w) => w.productId);
   res.json({ success: true, wishlist: userWishlist });
 });
 
