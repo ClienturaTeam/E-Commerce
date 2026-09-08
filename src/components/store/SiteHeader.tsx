@@ -14,7 +14,7 @@ import {
   Package,
   MapPinCheck,
 } from "lucide-react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -23,13 +23,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { categories } from "./catalog";
+import { categories, products, inr } from "./catalog";
 import { AuthDialog } from "./AuthDialog";
 import { CameraSearchDialog } from "./CameraSearchDialog";
 import { useStore } from "./store-context";
 import { useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 
 export function SiteHeader() {
+  const navigate = useNavigate();
   const { user: entUser, logout: entLogout, isAuthenticated: entAuth } = useEnterpriseAuth();
   const {
     query,
@@ -75,8 +76,32 @@ export function SiteHeader() {
   const [cameraOpen, setCameraOpen] = React.useState(false);
   const [draft, setDraft] = React.useState(query);
   const [isListening, setIsListening] = React.useState(false);
+  const [isFocused, setIsFocused] = React.useState(false);
 
   React.useEffect(() => setDraft(query), [query]);
+
+  // Live Search Suggestions Calculation
+  const liveSuggestions = React.useMemo(() => {
+    const term = draft.trim().toLowerCase();
+    if (!term || term.length < 1) return [];
+    return products
+      .filter((p) => {
+        const titleMatch = (p.title || "").toLowerCase().includes(term);
+        const brandMatch = (p.brand || "").toLowerCase().includes(term);
+        const catMatch = (p.category || "").toLowerCase().includes(term);
+        const subMatch = (p.subCategory || "").toLowerCase().includes(term);
+        return titleMatch || brandMatch || catMatch || subMatch;
+      })
+      .slice(0, 6);
+  }, [draft]);
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const term = draft.trim();
+    setQuery(term);
+    setIsFocused(false);
+    navigate({ to: "/search", search: { q: term } });
+  };
 
   // Voice Search (Web Speech API)
   const handleVoiceSearch = () => {
@@ -107,6 +132,7 @@ export function SiteHeader() {
           setDraft(transcript);
           setQuery(transcript);
           toast.success("Voice Search", { description: `Searching for "${transcript}"` });
+          navigate({ to: "/search", search: { q: transcript } });
         }
       };
 
@@ -145,63 +171,130 @@ export function SiteHeader() {
             <span className="hidden text-[11px] italic opacity-80 sm:inline">Explore Plus</span>
           </Link>
 
-          <form
-            className="order-3 flex min-w-0 flex-1 items-center gap-2 rounded-sm bg-card px-3 py-2 md:order-none"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setQuery(draft);
-            }}
-          >
-            <Search className="size-4 shrink-0 text-muted-foreground" />
-            <input
-              type="search"
-              aria-label="Search for products, brands and more"
-              placeholder={isListening ? "Listening..." : "Search for products, brands and more"}
-              value={draft}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                setQuery(e.target.value);
-              }}
-              className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            {query && (
+          {/* Search Form Wrapper */}
+          <div className="order-3 relative flex min-w-0 flex-1 flex-col md:order-none">
+            <form
+              className="flex items-center gap-2 rounded-sm bg-card px-3 py-2 border border-border/40 focus-within:border-brand shadow-sm"
+              onSubmit={handleSearchSubmit}
+            >
+              <button type="submit" aria-label="Submit search" className="text-muted-foreground hover:text-brand cursor-pointer">
+                <Search className="size-4 shrink-0" />
+              </button>
+              <input
+                type="search"
+                aria-label="Search for products, brands and more"
+                placeholder={isListening ? "Listening..." : "Search for products, brands and more..."}
+                value={draft}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDraft(val);
+                  setQuery(val);
+                  if (location.pathname === "/search") {
+                    navigate({ to: "/search", search: { q: val } });
+                  }
+                }}
+                className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground font-medium"
+              />
+              {draft && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setDraft("");
+                    setQuery("");
+                    if (location.pathname === "/search") {
+                      navigate({ to: "/search", search: { q: "" } });
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+
+              {/* Microphone Icon (Voice Search) */}
               <button
                 type="button"
-                aria-label="Clear search"
-                onClick={() => {
-                  setDraft("");
-                  setQuery("");
-                }}
-                className="text-muted-foreground hover:text-foreground cursor-pointer"
+                aria-label="Voice search"
+                onClick={handleVoiceSearch}
+                className={`text-muted-foreground hover:text-foreground transition-colors cursor-pointer ${
+                  isListening ? "text-brand animate-pulse" : ""
+                }`}
+                title="Voice Search"
               >
-                <X className="size-4" />
+                <Mic className="size-4" />
               </button>
+
+              {/* Camera Icon (Image Search) */}
+              <button
+                type="button"
+                aria-label="Camera search"
+                onClick={() => setCameraOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                title="Image Search"
+              >
+                <Camera className="size-4" />
+              </button>
+            </form>
+
+            {/* Live Search Suggestions Dropdown */}
+            {isFocused && draft.trim().length >= 1 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-border bg-card shadow-2xl overflow-hidden text-foreground animate-in fade-in slide-in-from-top-2">
+                <div className="p-2.5 bg-muted/40 border-b border-border flex items-center justify-between text-xs font-bold">
+                  <span className="text-muted-foreground">Matching Suggestions ({liveSuggestions.length})</span>
+                  {liveSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onMouseDown={() => handleSearchSubmit()}
+                      className="text-brand hover:underline font-black cursor-pointer text-xs"
+                    >
+                      View all results →
+                    </button>
+                  )}
+                </div>
+
+                {liveSuggestions.length > 0 ? (
+                  <div className="divide-y divide-border/50 max-h-72 overflow-y-auto">
+                    {liveSuggestions.map((item) => (
+                      <div
+                        key={item.id}
+                        onMouseDown={() => {
+                          setIsFocused(false);
+                          navigate({ to: "/product/$id", params: { id: item.id } });
+                        }}
+                        className="p-2.5 flex items-center gap-3 hover:bg-muted/60 transition-colors cursor-pointer"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="size-10 object-contain rounded bg-white p-0.5 border border-border shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold truncate text-foreground">{item.title}</p>
+                          <p className="text-[11px] text-muted-foreground font-medium">{item.brand} • {item.category}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-black text-foreground">{inr(item.price)}</span>
+                          {item.mrp > item.price && (
+                            <span className="block text-[10px] text-emerald-600 font-extrabold">
+                              {Math.round(((item.mrp - item.price) / item.mrp) * 100)}% OFF
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-muted-foreground space-y-1">
+                    <p className="font-bold text-foreground">No matching products for "{draft}"</p>
+                    <p className="text-[11px]">Press Enter or Search to see full store results.</p>
+                  </div>
+                )}
+              </div>
             )}
-
-            {/* Microphone Icon (Voice Search) */}
-            <button
-              type="button"
-              aria-label="Voice search"
-              onClick={handleVoiceSearch}
-              className={`text-muted-foreground hover:text-foreground transition-colors cursor-pointer ${
-                isListening ? "text-brand animate-pulse" : ""
-              }`}
-              title="Voice Search"
-            >
-              <Mic className="size-4" />
-            </button>
-
-            {/* Camera Icon (Image Search) */}
-            <button
-              type="button"
-              aria-label="Camera search"
-              onClick={() => setCameraOpen(true)}
-              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="Image Search"
-            >
-              <Camera className="size-4" />
-            </button>
-          </form>
+          </div>
 
           <nav className="flex items-center gap-5 text-sm font-medium">
             {entAuth && entUser ? (
