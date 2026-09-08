@@ -18,13 +18,9 @@ export const Route = createFileRoute("/customer/dashboard")({
 
 function CustomerDashboardRoute() {
   return (
-    <StoreProvider>
-      <RequirePortalAuth requiredRole="CUSTOMER">
-        <CustomerDashboardPage />
-      </RequirePortalAuth>
-      <CartPanel />
-      <ChatBot />
-    </StoreProvider>
+    <RequirePortalAuth requiredRole="CUSTOMER">
+      <CustomerDashboardPage />
+    </RequirePortalAuth>
   );
 }
 

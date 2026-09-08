@@ -8,22 +8,11 @@ interface RequirePortalAuthProps {
   children: React.ReactNode;
 }
 
-const ROLE_LOGIN_PATHS: Record<string, string> = {
-  CUSTOMER: "/login?role=customer",
-  SELLER: "/login?role=seller",
-  ADMIN: "/login?role=admin",
-  SUPER_ADMIN: "/login",
-  WAREHOUSE: "/login?role=warehouse",
-  DELIVERY: "/login?role=delivery",
-  SUPPORT: "/login?role=support",
-  FINANCE: "/login?role=finance",
-};
-
 export function RequirePortalAuth({ requiredRole, children }: RequirePortalAuthProps) {
   const { isAuthenticated, user, role } = useEnterpriseAuth();
   const hasNotifiedRef = React.useRef(false);
 
-  const targetLoginPath = ROLE_LOGIN_PATHS[requiredRole] || "/portals";
+  const targetRole = requiredRole.toLowerCase();
 
   if (!isAuthenticated || !user) {
     if (!hasNotifiedRef.current && typeof window !== "undefined") {
@@ -32,7 +21,7 @@ export function RequirePortalAuth({ requiredRole, children }: RequirePortalAuthP
         description: `Please log in to access the ${requiredRole.replace("_", " ")} Portal.`,
       });
     }
-    return <Navigate to={targetLoginPath as any} replace />;
+    return <Navigate to="/login" search={{ role: targetRole }} replace />;
   }
 
   if (role && role !== requiredRole) {
@@ -42,7 +31,7 @@ export function RequirePortalAuth({ requiredRole, children }: RequirePortalAuthP
         description: `Logged in as ${role}. Please log in with a ${requiredRole.replace("_", " ")} account.`,
       });
     }
-    return <Navigate to={targetLoginPath as any} replace />;
+    return <Navigate to="/login" search={{ role: targetRole }} replace />;
   }
 
   return <>{children}</>;
