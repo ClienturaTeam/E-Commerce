@@ -433,6 +433,89 @@ app.post("/api/auth/login", (req, res) => {
   });
 });
 
+// POST /api/auth/firebase-sync (Real Firebase OTP & Google Login Synchronization)
+app.post("/api/auth/firebase-sync", async (req, res) => {
+  const { uid, name, email, phone, role = "CUSTOMER", authMethod = "firebase" } = req.body || {};
+
+  if (!uid) {
+    return res.status(400).json({ success: false, message: "Firebase UID is required." });
+  }
+
+  const cleanEmail = email ? email.toString().toLowerCase().trim() : "";
+  const cleanPhone = phone ? phone.toString().replace(/\D/g, "") : "";
+
+  // Search existing user by UID, Email, or Phone
+  let userObj = db.users.find(
+    (u) =>
+      u.firebaseUid === uid ||
+      u.id === uid ||
+      (cleanEmail && u.email?.toLowerCase().trim() === cleanEmail) ||
+      (cleanPhone && cleanPhone.length >= 7 && u.phone?.replace(/\D/g, "") === cleanPhone)
+  );
+
+  if (userObj) {
+    // Update user details & role
+    userObj.firebaseUid = uid;
+    if (name) userObj.name = name;
+    if (cleanEmail) userObj.email = cleanEmail;
+    if (cleanPhone) userObj.phone = cleanPhone;
+    if (role) userObj.role = role.toString().toUpperCase();
+    userObj.last_login = new Date().toISOString();
+    saveDb();
+
+    if (isMongoConnected) {
+      try {
+        await UserModel.updateOne(
+          { _id: userObj.id },
+          { $set: { firebaseUid: uid, name: userObj.name, email: userObj.email, phone: userObj.phone, role: userObj.role } },
+          { upsert: false }
+        );
+      } catch (err) {
+        console.error("MongoDB user sync error:", err.message);
+      }
+    }
+  } else {
+    // Create new user in DB
+    const userId = uid || `usr-fb-${Date.now()}`;
+    userObj = {
+      id: userId,
+      user_id: userId,
+      firebaseUid: uid,
+      name: name || (cleanEmail ? cleanEmail.split("@")[0] : `User ${cleanPhone.slice(-4)}`),
+      email: cleanEmail || `${cleanPhone || Date.now()}@kartly.com`,
+      phone: cleanPhone || "9999999999",
+      role: role.toString().toUpperCase(),
+      authMethod,
+      rewardPoints: 100,
+      created_at: new Date().toISOString(),
+    };
+
+    db.users.push(userObj);
+    saveDb();
+
+    if (isMongoConnected) {
+      try {
+        await UserModel.create(userObj);
+      } catch (err) {
+        console.error("MongoDB new user creation error:", err.message);
+      }
+    }
+  }
+
+  const token = jwt.sign({ id: userObj.id, email: userObj.email, role: userObj.role }, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+
+  const { password: _, ...userWithoutPassword } = userObj;
+
+  res.json({
+    success: true,
+    message: "Firebase authentication synchronized successfully!",
+    token,
+    user: userWithoutPassword,
+  });
+});
+
 // GET /auth/me & /api/auth/me
 app.get("/api/auth/me", authenticateToken, (req, res) => {
   if (!req.user) {

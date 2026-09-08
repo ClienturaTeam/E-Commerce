@@ -70,6 +70,22 @@ export async function loginApi(credentials: { emailOrPhone?: string; email?: str
   return data;
 }
 
+export async function firebaseSyncApi(userData: {
+  uid: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  authMethod?: string;
+}) {
+  const data = await request<{ success: boolean; token?: string; user?: any; message?: string }>("/auth/firebase-sync", {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+  if (data.success && data.token) setToken(data.token);
+  return data;
+}
+
 export async function fetchMeApi() {
   return request<{ success: boolean; user?: any }>("/auth/me");
 }
