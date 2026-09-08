@@ -170,15 +170,20 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
   const activePortal =
     PORTAL_ROLES.find((p) => p.role === selectedRole) || PORTAL_ROLES[0];
 
+  const getTargetPage = (role: UserRole) => {
+    if (role === "CUSTOMER") return "/";
+    const portal = PORTAL_ROLES.find((p) => p.role === role);
+    return portal ? portal.dashboardPath : "/";
+  };
+
   // ----------------------------------------------------
-  // SESSION CHECK: If already logged in, redirect directly to portal dashboard
+  // SESSION CHECK: If already logged in, redirect directly to target page
   // ----------------------------------------------------
   if (isAuthenticated && user) {
-    const userRoleObj = PORTAL_ROLES.find((p) => p.role === user.role) || PORTAL_ROLES[0];
-    return <Navigate to={userRoleObj.dashboardPath as any} replace />;
+    return <Navigate to={getTargetPage(user.role) as any} replace />;
   }
   if (storeUser && storeUser.isAuth) {
-    return <Navigate to="/customer/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Auth Modes & State
@@ -302,7 +307,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
         if (selectedRole === "CUSTOMER") {
           storeSignIn(res.user?.name || "Customer", `${phoneNumber}@kartly.com`, phoneNumber);
         }
-        navigate({ to: activePortal.dashboardPath as any });
+        navigate({ to: getTargetPage(selectedRole) as any });
       } else {
         setErrorMessage(res.message || "Failed to save login session.");
       }
@@ -333,7 +338,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
         if (selectedRole === "CUSTOMER") {
           storeSignIn(googleUser.name, googleUser.email, googleUser.phone || "9876543210");
         }
-        navigate({ to: activePortal.dashboardPath as any });
+        navigate({ to: getTargetPage(selectedRole) as any });
       } else {
         setErrorMessage(res.message || "Google Sign-In failed.");
       }
@@ -358,7 +363,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
         if (selectedRole === "CUSTOMER") {
           storeSignIn(mockGoogleUser.name, mockGoogleUser.email, mockGoogleUser.phone);
         }
-        navigate({ to: activePortal.dashboardPath as any });
+        navigate({ to: getTargetPage(selectedRole) as any });
       }
     } finally {
       setIsSubmitting(false);
@@ -383,8 +388,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
           const userName = emailOrPhone.split("@")[0] || "Customer";
           storeSignIn(userName, emailOrPhone, "9876543210");
         }
-        toast.success(`Welcome to ${activePortal.label} Portal!`);
-        navigate({ to: activePortal.dashboardPath as any });
+        navigate({ to: getTargetPage(selectedRole) as any });
       } else {
         setErrorMessage(res.message || "Incorrect credentials. Please verify details.");
       }
@@ -414,7 +418,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
         if (selectedRole === "CUSTOMER") {
           storeSignIn(fullName || "Customer", emailOrPhone, regPhone || "9876543210");
         }
-        navigate({ to: activePortal.dashboardPath as any });
+        navigate({ to: getTargetPage(selectedRole) as any });
       } else {
         setErrorMessage(res.message || "Registration failed.");
       }
@@ -439,7 +443,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
       if (selectedRole === "CUSTOMER") {
         storeSignIn(activePortal.demoCredentials.name, activePortal.demoCredentials.email, "9876543210");
       }
-      navigate({ to: activePortal.dashboardPath as any });
+      navigate({ to: getTargetPage(selectedRole) as any });
     }
   };
 

@@ -108,9 +108,21 @@ export function EnterpriseAuthProvider({ children }: { children: React.ReactNode
       window.localStorage.setItem("kartly.enterprise.user", JSON.stringify(newUser));
       window.localStorage.setItem("kartly.enterprise.token", JSON.stringify(newToken));
       setApiToken(newToken);
+
+      // Sync StoreContext user state
+      const storeUserProfile = {
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        isAuth: true,
+      };
+      window.localStorage.setItem("kartly.user", JSON.stringify(storeUserProfile));
+      window.localStorage.setItem("antigravity_user", JSON.stringify(storeUserProfile));
     } else {
       window.localStorage.removeItem("kartly.enterprise.user");
       window.localStorage.removeItem("kartly.enterprise.token");
+      window.localStorage.removeItem("kartly.user");
+      window.localStorage.removeItem("antigravity_user");
       removeApiToken();
     }
   };

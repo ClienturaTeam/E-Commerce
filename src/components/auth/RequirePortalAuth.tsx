@@ -8,15 +8,18 @@ interface RequirePortalAuthProps {
   children: React.ReactNode;
 }
 
+// Global set to prevent duplicate notification toasts across rapid re-renders
+const notifiedSessionKeys = new Set<string>();
+
 export function RequirePortalAuth({ requiredRole, children }: RequirePortalAuthProps) {
   const { isAuthenticated, user, role } = useEnterpriseAuth();
-  const hasNotifiedRef = React.useRef(false);
-
   const targetRole = requiredRole.toLowerCase();
 
   if (!isAuthenticated || !user) {
-    if (!hasNotifiedRef.current && typeof window !== "undefined") {
-      hasNotifiedRef.current = true;
+    const notifyKey = `unauth-${requiredRole}`;
+    if (!notifiedSessionKeys.has(notifyKey) && typeof window !== "undefined") {
+      notifiedSessionKeys.add(notifyKey);
+      setTimeout(() => notifiedSessionKeys.delete(notifyKey), 10000);
       toast.warning("Authentication Required", {
         description: `Please log in to access the ${requiredRole.replace("_", " ")} Portal.`,
       });
@@ -25,8 +28,10 @@ export function RequirePortalAuth({ requiredRole, children }: RequirePortalAuthP
   }
 
   if (role && role !== requiredRole) {
-    if (!hasNotifiedRef.current && typeof window !== "undefined") {
-      hasNotifiedRef.current = true;
+    const notifyKey = `denied-${role}-${requiredRole}`;
+    if (!notifiedSessionKeys.has(notifyKey) && typeof window !== "undefined") {
+      notifiedSessionKeys.add(notifyKey);
+      setTimeout(() => notifiedSessionKeys.delete(notifyKey), 10000);
       toast.error("Access Denied", {
         description: `Logged in as ${role}. Please log in with a ${requiredRole.replace("_", " ")} account.`,
       });
