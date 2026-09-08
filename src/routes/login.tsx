@@ -143,7 +143,7 @@ const PORTAL_ROLES: {
   },
   {
     role: "FINANCE",
-    label: "Finance Team",
+    label: "Finance",
     description: "Seller settlements, GST compliance filings & revenue tracking.",
     dashboardPath: "/finance/dashboard",
     icon: DollarSign,
@@ -527,7 +527,7 @@ function UnifiedLoginPage({ initialRole }: { initialRole: string }) {
                   >
                     {PORTAL_ROLES.map((p) => (
                       <option key={p.role} value={p.role}>
-                        {p.label} Portal — {p.description.slice(0, 45)}...
+                        {p.label}
                       </option>
                     ))}
                   </select>
