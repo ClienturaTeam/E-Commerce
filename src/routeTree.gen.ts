@@ -24,6 +24,7 @@ import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as FurnitureRouteImport } from './routes/furniture'
 import { Route as GroceryRouteImport } from './routes/grocery'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MobilesRouteImport } from './routes/mobiles'
 import { Route as OrderSuccessRouteImport } from './routes/order-success'
 import { Route as OrdersRouteImport } from './routes/orders'
@@ -176,6 +177,11 @@ const GroceryRoute = GroceryRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MobilesRoute = MobilesRouteImport.update({
@@ -585,6 +591,7 @@ export interface FileRoutesByFullPath {
   '/furniture': typeof FurnitureRoute
   '/grocery': typeof GroceryRouteWithChildren
   '/home': typeof HomeRouteWithChildren
+  '/login': typeof LoginRoute
   '/mobiles': typeof MobilesRouteWithChildren
   '/order-success': typeof OrderSuccessRoute
   '/orders': typeof OrdersRouteWithChildren
@@ -673,6 +680,7 @@ export interface FileRoutesByTo {
   '/delivery': typeof DeliveryRouteWithChildren
   '/finance': typeof FinanceRouteWithChildren
   '/furniture': typeof FurnitureRoute
+  '/login': typeof LoginRoute
   '/order-success': typeof OrderSuccessRoute
   '/orders': typeof OrdersRouteWithChildren
   '/payment': typeof PaymentRoute
@@ -762,6 +770,7 @@ export interface FileRoutesById {
   '/furniture': typeof FurnitureRoute
   '/grocery': typeof GroceryRouteWithChildren
   '/home': typeof HomeRouteWithChildren
+  '/login': typeof LoginRoute
   '/mobiles': typeof MobilesRouteWithChildren
   '/order-success': typeof OrderSuccessRoute
   '/orders': typeof OrdersRouteWithChildren
@@ -859,6 +868,7 @@ export interface FileRouteTypes {
     | '/furniture'
     | '/grocery'
     | '/home'
+    | '/login'
     | '/mobiles'
     | '/order-success'
     | '/orders'
@@ -947,6 +957,7 @@ export interface FileRouteTypes {
     | '/delivery'
     | '/finance'
     | '/furniture'
+    | '/login'
     | '/order-success'
     | '/orders'
     | '/payment'
@@ -1035,6 +1046,7 @@ export interface FileRouteTypes {
     | '/furniture'
     | '/grocery'
     | '/home'
+    | '/login'
     | '/mobiles'
     | '/order-success'
     | '/orders'
@@ -1131,6 +1143,7 @@ export interface RootRouteChildren {
   FurnitureRoute: typeof FurnitureRoute
   GroceryRoute: typeof GroceryRouteWithChildren
   HomeRoute: typeof HomeRouteWithChildren
+  LoginRoute: typeof LoginRoute
   MobilesRoute: typeof MobilesRouteWithChildren
   OrderSuccessRoute: typeof OrderSuccessRoute
   OrdersRoute: typeof OrdersRouteWithChildren
@@ -1258,6 +1271,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mobiles': {
@@ -2154,6 +2174,7 @@ const rootRouteChildren: RootRouteChildren = {
   FurnitureRoute: FurnitureRoute,
   GroceryRoute: GroceryRouteWithChildren,
   HomeRoute: HomeRouteWithChildren,
+  LoginRoute: LoginRoute,
   MobilesRoute: MobilesRouteWithChildren,
   OrderSuccessRoute: OrderSuccessRoute,
   OrdersRoute: OrdersRouteWithChildren,

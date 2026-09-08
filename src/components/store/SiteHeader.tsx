@@ -368,72 +368,14 @@ export function SiteHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <button
-                onClick={() => openAuthModal("Sign in to manage orders, wishlist, and profile.")}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 transition-colors hover:bg-brand-deep cursor-pointer"
+              <Link
+                to="/login"
+                className="flex items-center gap-1.5 rounded-sm px-3.5 py-1.5 bg-brand-deep/60 hover:bg-brand-deep font-bold transition-colors cursor-pointer"
               >
                 <UserRound className="size-4" />
                 Login
-                <ChevronDown className="size-3.5 opacity-70" />
-              </button>
+              </Link>
             )}
-
-            {/* 8 ROLE PORTALS DROPDOWN */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md bg-accent/20 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:bg-accent/30 cursor-pointer">
-                <Store className="size-4" />
-                <span>All Portals (8 Roles)</span>
-                <ChevronDown className="size-3.5 opacity-70" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link to="/portals" className="font-extrabold text-brand cursor-pointer">
-                    🌐 Portals Hub (Directory)
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/customer/dashboard" className="cursor-pointer">
-                    👤 Customer Portal
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/seller/dashboard" className="cursor-pointer">
-                    🏪 Seller Portal
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/dashboard" className="cursor-pointer">
-                    🛡️ Admin Portal
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/super-admin/dashboard" className="cursor-pointer">
-                    👑 Super Admin Portal
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/warehouse/dashboard" className="cursor-pointer">
-                    📦 Warehouse Staff
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/delivery/dashboard" className="cursor-pointer">
-                    🚚 Delivery Partner
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/support/dashboard" className="cursor-pointer">
-                    🎧 Customer Support
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/finance/dashboard" className="cursor-pointer">
-                    💰 Finance Team
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             <Link
               to="/seller"

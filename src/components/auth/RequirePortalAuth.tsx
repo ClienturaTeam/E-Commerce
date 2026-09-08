@@ -8,15 +8,15 @@ interface RequirePortalAuthProps {
   children: React.ReactNode;
 }
 
-const ROLE_LOGIN_PATHS: Record<UserRole, string> = {
-  CUSTOMER: "/customer/login",
-  SELLER: "/seller/login",
-  ADMIN: "/admin/login",
-  SUPER_ADMIN: "/super-admin/login",
-  WAREHOUSE: "/warehouse/login",
-  DELIVERY: "/delivery/login",
-  SUPPORT: "/support/login",
-  FINANCE: "/finance/login",
+const ROLE_LOGIN_PATHS: Record<string, string> = {
+  CUSTOMER: "/login?role=customer",
+  SELLER: "/login?role=seller",
+  ADMIN: "/login?role=admin",
+  SUPER_ADMIN: "/login",
+  WAREHOUSE: "/login?role=warehouse",
+  DELIVERY: "/login?role=delivery",
+  SUPPORT: "/login?role=support",
+  FINANCE: "/login?role=finance",
 };
 
 export function RequirePortalAuth({ requiredRole, children }: RequirePortalAuthProps) {

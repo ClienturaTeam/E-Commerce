@@ -34,7 +34,7 @@ function PortalsPage() {
       id: "customer",
       title: "1. Customer Portal",
       description: "Email/Password, Mobile+OTP, Google & Apple OAuth, Wishlist, Orders, Profile & Loyalty Points.",
-      loginUrl: "/customer/login",
+      loginUrl: "/login?role=customer",
       dashboardUrl: "/customer/dashboard",
       icon: Users,
       badge: "Public Access",
@@ -44,7 +44,7 @@ function PortalsPage() {
       id: "seller",
       title: "2. Seller Portal",
       description: "KYC Verification, Store Approval Status, Device Tracking, Inventory, Sales Analytics & Payouts.",
-      loginUrl: "/seller/login",
+      loginUrl: "/login?role=seller",
       dashboardUrl: "/seller/dashboard",
       icon: Store,
       badge: "MFA Enforced",
@@ -54,27 +54,17 @@ function PortalsPage() {
       id: "admin",
       title: "3. Admin Portal",
       description: "CAPTCHA Security, Users Moderation, Seller Approvals, Product Controls & Marketing Tools.",
-      loginUrl: "/admin/login",
+      loginUrl: "/login?role=admin",
       dashboardUrl: "/admin/dashboard",
       icon: ShieldCheck,
       badge: "CAPTCHA + MFA",
       color: "border-amber-500/30 bg-amber-50/40 text-amber-700",
     },
     {
-      id: "super-admin",
-      title: "4. Super Admin Portal",
-      description: "Highest Privilege Root, Create/Manage Admins, API Keys, Security Policies & Audit Logs.",
-      loginUrl: "/super-admin/login",
-      dashboardUrl: "/super-admin/dashboard",
-      icon: Crown,
-      badge: "IP Whitelisted",
-      color: "border-red-500/30 bg-red-50/40 text-red-700",
-    },
-    {
       id: "warehouse",
-      title: "5. Warehouse Staff Portal",
+      title: "4. Warehouse Staff Portal",
       description: "Station Badge Auth, Barcode Scanner Integration, Pick → Pack → Dispatch Queue Workflow.",
-      loginUrl: "/warehouse/login",
+      loginUrl: "/login?role=warehouse",
       dashboardUrl: "/warehouse/dashboard",
       icon: PackageCheck,
       badge: "Badge ID Login",
@@ -82,9 +72,9 @@ function PortalsPage() {
     },
     {
       id: "delivery",
-      title: "6. Delivery Partner Portal",
+      title: "5. Delivery Partner Portal",
       description: "Mobile-First OTP Auth, Live Map Navigation, OTP Delivery Confirmation & Earnings Tracking.",
-      loginUrl: "/delivery/login",
+      loginUrl: "/login?role=delivery",
       dashboardUrl: "/delivery/dashboard",
       icon: Truck,
       badge: "Mobile OTP",
@@ -92,9 +82,9 @@ function PortalsPage() {
     },
     {
       id: "support",
-      title: "7. Customer Support Portal",
+      title: "6. Customer Support Portal",
       description: "Agent Desk Login, Ticket Queue (Open → Resolve → Close), Live Chat & Refund Processing.",
-      loginUrl: "/support/login",
+      loginUrl: "/login?role=support",
       dashboardUrl: "/support/dashboard",
       icon: Headphones,
       badge: "Agent Helpdesk",
@@ -102,9 +92,9 @@ function PortalsPage() {
     },
     {
       id: "finance",
-      title: "8. Finance Team Portal",
+      title: "7. Finance Team Portal",
       description: "Secure Financial Auth, Payment Reconciliation, Seller Settlements, GST Reports & Revenue Tracking.",
-      loginUrl: "/finance/login",
+      loginUrl: "/login?role=finance",
       dashboardUrl: "/finance/dashboard",
       icon: DollarSign,
       badge: "Audit Logged",
@@ -128,7 +118,7 @@ function PortalsPage() {
                 Enterprise Multi-Portal Login Directory
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                8 Independent Login Systems & Role-Based Dashboards powered by a Centralized OAuth/JWT Authentication Core.
+                7 Specialized Role Portals powered by a Centralized JWT Authentication System.
               </p>
             </div>
 
