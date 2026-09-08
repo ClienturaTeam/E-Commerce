@@ -1,10 +1,11 @@
-import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
+import { createFileRoute, useSearch, useNavigate, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { SiteHeader } from "@/components/store/SiteHeader";
 import { SiteFooter } from "@/components/store/SiteFooter";
 import { ProductCard } from "@/components/store/ProductCard";
 import { Search, ChevronRight, Sparkles, Filter, Tag } from "lucide-react";
-import { products as baseProducts, type Product } from "@/components/store/catalog";
+import { getAllProducts } from "@/data/categoryData";
+import { type Product } from "@/components/store/catalog";
 import { filterProductsByDiscount, parseDiscountFromBanner } from "@/lib/discount-filter";
 import { getFallbackImage } from "@/components/store/image-fallback";
 import { StoreProvider, useStore } from "@/components/store/store-context";
@@ -32,6 +33,7 @@ function SearchRoute() {
 }
 
 function SearchResultsPage() {
+  const navigate = useNavigate();
   const { q, discount } = useSearch({ from: "/search" });
   const { query, setQuery } = useStore();
   const [queryInput, setQueryInput] = React.useState(q || query || "");
@@ -46,8 +48,9 @@ function SearchResultsPage() {
   }, [discount]);
 
   const { filteredProducts, isSearchEmpty } = React.useMemo(() => {
-    let result = baseProducts;
+    let result = getAllProducts();
     const searchTerm = queryInput.trim().toLowerCase();
+
 
     if (searchTerm) {
       result = result.filter((product) => {
@@ -63,10 +66,11 @@ function SearchResultsPage() {
           selectedCategory === "all" ||
           product.category.toLowerCase() === selectedCategory.toLowerCase();
 
-        return inQuery && inCategory;
+        const isAvailable = (product as any).inStock !== false && (product as any).isOutOfStock !== true;
+
+        return inQuery && inCategory && isAvailable;
       });
 
-      // If user typed a search term and no catalog product matched
       if (result.length === 0) {
         return { filteredProducts: [], isSearchEmpty: true };
       }
@@ -76,82 +80,27 @@ function SearchResultsPage() {
       );
     }
 
-    // Apply Discount Banner Filter if provided (e.g. Up to 40% OFF -> 35% to 40%)
+    // Apply Discount Banner Filter if provided
     if (discount) {
       result = filterProductsByDiscount(result, discount);
     }
 
-    // Fallback Dummy Products for empty banner/category filter results
     if (result.length === 0) {
-      const cat = selectedCategory !== "all" ? selectedCategory : "Mobiles";
-      const targetDiscount = discountRange ? discountRange.max : 40;
-      const mrp1 = 19999;
-      const price1 = Math.round(mrp1 * (1 - targetDiscount / 100));
-      const mrp2 = 24999;
-      const price2 = Math.round(mrp2 * (1 - targetDiscount / 100));
-      const mrp3 = 13330;
-      const price3 = Math.round(mrp3 * (1 - targetDiscount / 100));
-
-      result = [
-        {
-          id: `dummy-deal-1-${Date.now()}`,
-          title: `Premium ${cat} Special Edition Deal`,
-          brand: "Kartly Selection",
-          price: price1,
-          mrp: mrp1,
-          original_price: mrp1,
-          discounted_price: price1,
-          discount_percentage: targetDiscount,
-          rating: 4.6,
-          reviews: "1,420",
-          category: cat,
-          image: getFallbackImage(cat),
-          isBestseller: true,
-          isAssured: true,
-        },
-        {
-          id: `dummy-deal-2-${Date.now()}`,
-          title: `NextGen ${cat} Smart Value Pack`,
-          brand: "Apex Hub",
-          price: price2,
-          mrp: mrp2,
-          original_price: mrp2,
-          discounted_price: price2,
-          discount_percentage: targetDiscount,
-          rating: 4.8,
-          reviews: "3,890",
-          category: cat,
-          image: getFallbackImage(cat),
-          isAssured: true,
-        },
-        {
-          id: `dummy-deal-3-${Date.now()}`,
-          title: `Ultra Pro ${cat} Performance Edition`,
-          brand: "Nexon",
-          price: price3,
-          mrp: mrp3,
-          original_price: mrp3,
-          discounted_price: price3,
-          discount_percentage: targetDiscount,
-          rating: 4.4,
-          reviews: "820",
-          category: cat,
-          image: getFallbackImage(cat),
-        },
-      ];
+      return { filteredProducts: [], isSearchEmpty: true };
     }
 
     return { filteredProducts: result, isSearchEmpty: false };
-  }, [queryInput, selectedCategory, discount, discountRange]);
+  }, [queryInput, selectedCategory, discount]);
 
   const availableCategories = React.useMemo(() => {
-    const set = new Set(baseProducts.map((p) => p.category));
+    const set = new Set(getAllProducts().map((p) => p.category));
     return Array.from(set);
   }, []);
 
   const popularRecommendations = React.useMemo(() => {
-    return baseProducts.filter((p) => p.isBestseller || p.rating >= 4.5).slice(0, 8);
+    return getAllProducts().filter((p) => p.isBestseller || p.rating >= 4.5).slice(0, 8);
   }, []);
+
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -239,10 +188,15 @@ function SearchResultsPage() {
                 <Search className="size-8 stroke-[2]" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-foreground">No Products Found</h3>
+                <h3 className="text-xl font-black text-foreground">Oops! Product not found.</h3>
                 <p className="text-xs text-muted-foreground">
-                  We couldn't find any products matching &ldquo;<strong className="text-foreground">{queryInput}</strong>&rdquo;.
+                  We couldn't find any products matching your search.
                 </p>
+                {queryInput && (
+                  <p className="text-xs font-semibold text-foreground/80 pt-1">
+                    Searched term: &ldquo;{queryInput}&rdquo;
+                  </p>
+                )}
               </div>
               <p className="text-[11px] text-muted-foreground bg-muted/50 p-3 rounded-xl border border-border/60">
                 💡 Try searching for popular categories like <strong>Mobiles</strong>, <strong>Fashion</strong>, <strong>Headphones</strong>, or <strong>Groceries</strong>.
@@ -252,10 +206,11 @@ function SearchResultsPage() {
                 onClick={() => {
                   setQueryInput("");
                   setQuery("");
+                  navigate({ to: "/search", search: { q: "" } });
                 }}
                 className="px-6 py-2.5 bg-brand hover:bg-brand-deep text-primary-foreground font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-transform hover:scale-105 cursor-pointer"
               >
-                Clear Search & Explore Store
+                Clear Search
               </button>
             </div>
 

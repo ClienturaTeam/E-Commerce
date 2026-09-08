@@ -276,9 +276,9 @@ export async function fetchWishlistApi() {
   return request<{ success: boolean; wishlist: string[] }>("/wishlist");
 }
 
-export async function toggleWishlistApi(productId: string) {
+export async function toggleWishlistApi(productId: string, action?: "add" | "remove") {
   return request<{ success: boolean; wishlist: string[] }>("/wishlist/toggle", {
     method: "POST",
-    body: JSON.stringify({ productId }),
+    body: JSON.stringify({ productId, action }),
   });
 }

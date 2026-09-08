@@ -14,7 +14,25 @@ export function ProductCard({
   badgeLabel?: string;
 }) {
   const navigate = useNavigate();
-  const { wishlist, toggleWishlist, addRecentlyViewed } = useStore();
+  const { wishlist, toggleWishlist, addRecentlyViewed, customReviews } = useStore();
+
+  const productCustomReviews = (customReviews && customReviews[product.id]) || [];
+  const cardRating = React.useMemo(() => {
+    if (productCustomReviews.length === 0) return product.rating;
+    const defaultCount = 3;
+    const totalCount = defaultCount + productCustomReviews.length;
+    const sum = (product.rating * defaultCount) + productCustomReviews.reduce((acc: number, r: any) => acc + (Number(r.rating) || 5), 0);
+    return Number((sum / totalCount).toFixed(1));
+  }, [productCustomReviews, product.rating]);
+
+  const cardReviewsCount = React.useMemo(() => {
+    if (productCustomReviews.length === 0) return product.reviews;
+    const num = parseInt(String(product.reviews).replace(/,/g, ""), 10);
+    if (!isNaN(num)) {
+      return (num + productCustomReviews.length).toLocaleString("en-IN");
+    }
+    return product.reviews;
+  }, [productCustomReviews, product.reviews]);
 
   const initialImg = React.useMemo(() => {
     if (!product.image || product.image.toLowerCase().includes("no image")) {
@@ -35,7 +53,10 @@ export function ProductCard({
     ? product.discount_percentage
     : calculateDiscountPct(mrp, price);
 
-  const saved = wishlist.includes(product.id);
+  const saved = wishlist.some(
+    (id) => String(id) === String(product.id || (product as any).product_id || (product as any)._id)
+  );
+
 
   const handleCardClick = () => {
     addRecentlyViewed(product.id);
@@ -127,10 +148,10 @@ export function ProductCard({
       {/* Rating & Reviews */}
       <div className="mb-2.5 flex items-center gap-1.5 text-xs">
         <div className="flex items-center gap-0.5 rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-          <span>{product.rating}</span>
+          <span>{cardRating}</span>
           <Star className="size-2.5 fill-white text-white" />
         </div>
-        <span className="text-[11px] text-muted-foreground">({product.reviews})</span>
+        <span className="text-[11px] text-muted-foreground">({cardReviewsCount})</span>
       </div>
 
       {/* Price Block */}

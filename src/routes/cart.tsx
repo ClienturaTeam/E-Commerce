@@ -18,9 +18,10 @@ import { SiteFooter } from "@/components/store/SiteFooter";
 import { CartPanel } from "@/components/store/CartPanel";
 import { ChatBot } from "@/components/store/ChatBot";
 import { useStore, getProductGstRate } from "@/components/store/store-context";
-import { inr } from "@/components/store/catalog";
+import { inr, type Product } from "@/components/store/catalog";
 import { handleImageError } from "@/components/store/image-fallback";
 import { GstBreakdownModal, PlatformFeeModal } from "@/components/store/BillBreakdownModals";
+import { RemoveConfirmModal } from "@/components/store/RemoveConfirmModal";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/cart")({
@@ -32,7 +33,8 @@ function CartPage() {
     cart,
     cartCount,
     setQty,
-    removeFromCart,
+    removeFromCartCompletely,
+    moveCartItemToWishlist,
     clearCart,
   } = useStore();
 
@@ -41,6 +43,7 @@ function CartPage() {
   const [couponCode, setCouponCode] = React.useState("");
   const [discount, setDiscount] = React.useState(0);
   const [appliedCoupon, setAppliedCoupon] = React.useState("");
+  const [itemPendingRemoval, setItemPendingRemoval] = React.useState<Product | null>(null);
 
   // Modal states for GST & Platform Fee breakdowns
   const [isGstModalOpen, setIsGstModalOpen] = React.useState(false);
@@ -244,7 +247,7 @@ function CartPage() {
 
                           {/* Remove button */}
                           <button
-                            onClick={() => removeFromCart(line.product.id)}
+                            onClick={() => setItemPendingRemoval(line.product)}
                             className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 className="size-3.5" /> Remove
@@ -413,6 +416,27 @@ function CartPage() {
         isOpen={isPlatformModalOpen}
         onClose={() => setIsPlatformModalOpen(false)}
         feeAmount={platformFee}
+      />
+
+      {/* Cart Item Removal Confirmation Dialog */}
+      <RemoveConfirmModal
+        product={itemPendingRemoval}
+        open={Boolean(itemPendingRemoval)}
+        onOpenChange={(open) => {
+          if (!open) setItemPendingRemoval(null);
+        }}
+        onMoveToWishlist={() => {
+          if (itemPendingRemoval) {
+            moveCartItemToWishlist(itemPendingRemoval);
+            setItemPendingRemoval(null);
+          }
+        }}
+        onRemoveCompletely={() => {
+          if (itemPendingRemoval) {
+            removeFromCartCompletely(itemPendingRemoval.id);
+            setItemPendingRemoval(null);
+          }
+        }}
       />
 
       <SiteFooter />

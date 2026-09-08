@@ -20,7 +20,10 @@ export function QuickViewModal({
 
   if (!product || !open) return null;
 
-  const saved = wishlist.includes(product.id);
+  const saved = wishlist.some(
+    (id) => String(id) === String(product.id || (product as any).product_id || (product as any)._id)
+  );
+
   const off = Math.round(((product.mrp - product.price) / product.mrp) * 100);
   const gstInfo = getGstBreakdown(product.price, 1);
   const images = getColorImages(product);

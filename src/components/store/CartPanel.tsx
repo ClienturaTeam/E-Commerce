@@ -9,7 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { inr } from "./catalog";
+import { RemoveConfirmModal } from "./RemoveConfirmModal";
+import { inr, type Product } from "./catalog";
 import { useStore } from "./store-context";
 
 export function CartPanel() {
@@ -21,7 +22,8 @@ export function CartPanel() {
     cartTotal,
     cartMrpTotal,
     setQty,
-    removeFromCart,
+    removeFromCartCompletely,
+    moveCartItemToWishlist,
     clearCart,
     pincode,
     user,
@@ -35,6 +37,7 @@ export function CartPanel() {
   const navigate = useNavigate();
   const [couponCodeInput, setCouponCodeInput] = React.useState("");
   const [isPlacingOrder, setIsPlacingOrder] = React.useState(false);
+  const [itemPendingRemoval, setItemPendingRemoval] = React.useState<Product | null>(null);
 
   const itemSavings = cartMrpTotal - cartTotal;
   const deliveryCharge = cartTotal > 500 ? 0 : 40;
@@ -150,7 +153,7 @@ export function CartPanel() {
 
                       <button
                         aria-label="Remove item"
-                        onClick={() => removeFromCart(line.product.id)}
+                        onClick={() => setItemPendingRemoval(line.product)}
                         className="p-1 text-muted-foreground hover:text-red-500 cursor-pointer transition-colors"
                       >
                         <Trash2 className="size-4" />
@@ -161,7 +164,6 @@ export function CartPanel() {
               ))}
             </ul>
 
-            {/* Coupon Code Section */}
             <div className="border-t border-border bg-muted/30 p-3">
               {appliedCoupon ? (
                 <div className="flex items-center justify-between rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs">
@@ -198,71 +200,55 @@ export function CartPanel() {
               )}
             </div>
 
-            {/* Price Details & Polished Gold/Yellow Place Order CTA */}
-            <SheetFooter className="flex-col gap-3 border-t border-border p-4 bg-card">
-              <div className="w-full space-y-1.5 text-xs">
-                <div className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground pb-1 border-b border-border">
-                  Price Details
-                </div>
-                <div className="flex justify-between text-muted-foreground pt-1">
-                  <span>Price ({cartCount} {cartCount === 1 ? "item" : "items"})</span>
+            {/* Cart Footer */}
+            <SheetFooter className="flex flex-col gap-3 border-t border-border p-4 sm:flex-col">
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal (MRP)</span>
                   <span>{inr(cartMrpTotal)}</span>
                 </div>
-                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
-                  <span>Product Discount</span>
-                  <span>-{inr(itemSavings)}</span>
-                </div>
-                {couponDiscountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
-                    <span>Coupon Discount</span>
+                {itemSavings > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <span>Item Discount</span>
+                    <span>-{inr(itemSavings)}</span>
+                  </div>
+                )}
+                {appliedCoupon && couponDiscountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <span>Coupon Discount ({appliedCoupon.code})</span>
                     <span>-{inr(couponDiscountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Delivery Charges</span>
-                  <span>
-                    {deliveryCharge === 0 ? (
-                      <strong className="text-emerald-600">FREE</strong>
-                    ) : (
-                      inr(deliveryCharge)
-                    )}
-                  </span>
+                  <span>Delivery Charge</span>
+                  <span>{deliveryCharge === 0 ? <strong className="text-emerald-600 dark:text-emerald-400">FREE</strong> : inr(deliveryCharge)}</span>
                 </div>
-
-                <div className="flex justify-between pt-2 border-t border-border font-extrabold text-sm text-foreground">
-                  <span>Total Amount</span>
-                  <span className="text-base text-brand font-black">{inr(finalPayable)}</span>
+                <div className="flex justify-between border-t border-border pt-1.5 text-sm font-extrabold text-foreground">
+                  <span>Total Payable</span>
+                  <span>{inr(finalPayable)}</span>
                 </div>
-
-                {totalSavings > 0 && (
-                  <p className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 text-right pt-0.5">
-                    You will save {inr(totalSavings)} on this order
-                  </p>
-                )}
               </div>
-              {/* Polished Gold/Yellow PLACE ORDER Primary CTA Button */}
+
+              {totalSavings > 0 && (
+                <div className="rounded-md bg-emerald-500/10 px-3 py-1.5 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  🎉 You are saving {inr(totalSavings)} on this order!
+                </div>
+              )}
+
               <button
+                onClick={handleProceedToCheckout}
                 disabled={isPlacingOrder}
-                onClick={() => {
-                  try {
-                    if (typeof window !== "undefined") {
-                      window.localStorage.removeItem("buyNowProduct");
-                    }
-                  } catch {}
-                  handleProceedToCheckout();
-                }}
-                className="h-12 w-full flex items-center justify-center gap-2 rounded-md bg-brand text-primary-foreground font-extrabold text-sm uppercase tracking-wider shadow-md hover:bg-brand-deep hover:shadow-lg active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-brand py-3 text-xs font-extrabold text-primary-foreground hover:bg-brand-deep cursor-pointer transition-all shadow-md active:scale-98 disabled:opacity-50"
               >
                 {isPlacingOrder ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    <span>Processing...</span>
+                    <span>Processing Checkout...</span>
                   </>
                 ) : (
                   <>
-                    <span>PLACE ORDER</span>
-                    <span className="opacity-70">•</span>
-                    <span>{inr(finalPayable)}</span>
+                    <span>PROCEED TO CHECKOUT ({inr(finalPayable)})</span>
+                    <ChevronRight className="size-4" />
                   </>
                 )}
               </button>
@@ -276,6 +262,27 @@ export function CartPanel() {
           </>
         )}
       </SheetContent>
+
+      {/* Cart Item Removal Confirmation Dialog */}
+      <RemoveConfirmModal
+        product={itemPendingRemoval}
+        open={Boolean(itemPendingRemoval)}
+        onOpenChange={(open) => {
+          if (!open) setItemPendingRemoval(null);
+        }}
+        onMoveToWishlist={() => {
+          if (itemPendingRemoval) {
+            moveCartItemToWishlist(itemPendingRemoval);
+            setItemPendingRemoval(null);
+          }
+        }}
+        onRemoveCompletely={() => {
+          if (itemPendingRemoval) {
+            removeFromCartCompletely(itemPendingRemoval.id);
+            setItemPendingRemoval(null);
+          }
+        }}
+      />
     </Sheet>
   );
 }

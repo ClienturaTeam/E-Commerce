@@ -254,15 +254,59 @@ function ProductDetailPage() {
       toast.error("Please enter a review comment!");
       return;
     }
-    addProductReview(product.id, newRating, newComment);
+    addProductReview(product.id, newRating, newComment, user?.name);
     setNewComment("");
     setShowReviewForm(false);
-    toast.success("Thank you for your review!");
+    toast.success("Thank you for your review!", {
+      description: "Your rating & review have been posted dynamically.",
+    });
   };
 
-  // Combine Product Reviews
-  const productCustomReviews = customReviews[product.id] || [];
-  const allReviews = [...productCustomReviews, ...DEFAULT_REVIEWS];
+  // Combine Product Reviews & Compute Dynamic Ratings
+  const productCustomReviews = React.useMemo(() => {
+    return (customReviews && customReviews[product.id]) || [];
+  }, [customReviews, product.id]);
+
+  const allReviews = React.useMemo(() => {
+    return [...productCustomReviews, ...DEFAULT_REVIEWS];
+  }, [productCustomReviews]);
+
+  const { dynamicRating, totalReviewsCount, starBreakdown } = React.useMemo(() => {
+    if (allReviews.length === 0) {
+      return {
+        dynamicRating: product.rating || 4.5,
+        totalReviewsCount: 0,
+        starBreakdown: [
+          { stars: 5, pct: "100%", count: 0 },
+          { stars: 4, pct: "0%", count: 0 },
+          { stars: 3, pct: "0%", count: 0 },
+          { stars: 2, pct: "0%", count: 0 },
+          { stars: 1, pct: "0%", count: 0 },
+        ],
+      };
+    }
+
+    const totalStars = allReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+    const avg = totalStars / allReviews.length;
+
+    const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    allReviews.forEach((r) => {
+      const star = Math.min(5, Math.max(1, Math.round(Number(r.rating) || 5)));
+      counts[star] = (counts[star] || 0) + 1;
+    });
+
+    const breakdown = [5, 4, 3, 2, 1].map((stars) => {
+      const count = counts[stars] || 0;
+      const pctNum = Math.round((count / allReviews.length) * 100);
+      return { stars, pct: `${pctNum}%`, count };
+    });
+
+    return {
+      dynamicRating: Number(avg.toFixed(1)),
+      totalReviewsCount: allReviews.length,
+      starBreakdown: breakdown,
+    };
+  }, [allReviews, product.rating]);
 
   const similarProducts = React.useMemo(() => {
     return products
@@ -274,7 +318,10 @@ function ProductDetailPage() {
       .slice(0, 6);
   }, [product]);
 
-  const saved = wishlist.includes(product.id);
+  const saved = wishlist.some(
+    (id) => String(id) === String(product.id || (product as any).product_id || (product as any)._id)
+  );
+
   const emiMonthly = Math.round(dynamicPrice / 6);
 
   return (
@@ -377,12 +424,12 @@ function ProductDetailPage() {
             {/* Ratings & Verified Buyers */}
             <div className="flex items-center gap-3 text-xs flex-wrap">
               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 font-black text-white shadow-2xs">
-                {product.rating.toFixed(1)}
+                {dynamicRating.toFixed(1)}
                 <Star className="size-3.5 fill-current" />
               </span>
 
               <span className="text-muted-foreground font-bold">
-                {product.reviews} Ratings & {allReviews.length} Reviews
+                {totalReviewsCount} Ratings & Reviews
               </span>
 
               <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[11px] px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
@@ -761,27 +808,33 @@ function ProductDetailPage() {
           {/* Rating Breakdown & Sentiment Tags */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center p-4 rounded-xl bg-muted/20 border border-border">
             <div className="text-center space-y-1">
-              <span className="text-4xl font-black text-foreground">{product.rating.toFixed(1)}</span>
+              <span className="text-4xl font-black text-foreground">{dynamicRating.toFixed(1)}</span>
               <div className="flex justify-center text-amber-500">
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} className="size-4 fill-amber-500" />
+                  <Star
+                    key={s}
+                    className={`size-4 ${
+                      s <= Math.round(dynamicRating)
+                        ? "fill-amber-500 text-amber-500"
+                        : "text-muted-foreground/30"
+                    }`}
+                  />
                 ))}
               </div>
-              <p className="text-[11px] text-muted-foreground font-semibold">Overall Rating Score</p>
+              <p className="text-[11px] text-muted-foreground font-semibold">
+                Overall Score ({totalReviewsCount} Reviews)
+              </p>
             </div>
 
             <div className="sm:col-span-2 space-y-1.5 text-xs">
-              {[
-                { stars: 5, pct: "70%" },
-                { stars: 4, pct: "20%" },
-                { stars: 3, pct: "6%" },
-                { stars: 2, pct: "2%" },
-                { stars: 1, pct: "2%" },
-              ].map((row) => (
+              {starBreakdown.map((row) => (
                 <div key={row.stars} className="flex items-center gap-2">
                   <span className="w-8 font-bold text-muted-foreground text-right">{row.stars} ★</span>
                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: row.pct }} />
+                    <div
+                      className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                      style={{ width: row.pct }}
+                    />
                   </div>
                   <span className="w-10 text-[11px] font-bold text-muted-foreground">{row.pct}</span>
                 </div>

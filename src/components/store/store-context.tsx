@@ -160,6 +160,8 @@ export type StoreState = {
   clearBuyNow: () => void;
   setQty: (id: string, qty: number) => void;
   removeFromCart: (id: string) => void;
+  removeFromCartCompletely: (id: string) => void;
+  moveCartItemToWishlist: (p: Product) => void;
   clearCart: () => void;
   cartOpen: boolean;
   setCartOpen: (v: boolean) => void;
@@ -415,13 +417,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     syncBackendData();
   }, []);
 
-  const [customReviews, setCustomReviews] = React.useState<Record<string, any[]>>({});
+  const [customReviews, setCustomReviews] = React.useState<Record<string, any[]>>(() =>
+    safeRead<Record<string, any[]>>("kartly.custom_reviews", {})
+  );
 
   const addProductReview = React.useCallback((productId: string, rating: number, comment: string, userName?: string) => {
     if (!productId || !comment.trim()) return;
     const author = userName || user?.name || "Verified Customer";
     const newRev = {
-      id: `rev-${Date.now()}`,
+      id: `rev-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       userName: author,
       rating,
       comment: comment.trim(),
@@ -439,8 +443,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       } catch {}
       return updated;
     });
-
-    toast.success("Review submitted successfully!", { description: "Thank you for your feedback!" });
   }, [user]);
 
   // Save to localStorage
@@ -643,6 +645,52 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toast("Removed from cart");
   }, []);
 
+  const removeFromCartCompletely = React.useCallback((id: string) => {
+    setCart((prev) => (Array.isArray(prev) ? prev.filter((l) => l && l.product && l.product.id !== id) : []));
+    removeCartItemApi(id).catch((err) => console.error("removeCartItemApi error:", err));
+    toast.success("Product removed from cart.");
+  }, []);
+
+  const moveCartItemToWishlist = React.useCallback(async (p: Product) => {
+    if (!p) return;
+    const pId = String(p.id || (p as any).product_id || (p as any)._id);
+    if (!pId) return;
+
+    try {
+      // 1. Call REAL existing Wishlist API with action="add"
+      const res = await toggleWishlistApi(pId, "add");
+
+      if (!res || res.success === false) {
+        toast.error("Unable to move item to Wishlist. Please try again.");
+        return;
+      }
+
+      // 2. Update Wishlist state & localStorage AFTER Wishlist addition succeeded
+      const updatedWishlist = Array.isArray(res.wishlist) ? res.wishlist : [];
+      setWishlist((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const next = updatedWishlist.length > 0 ? updatedWishlist : current.includes(pId) ? current : [...current, pId];
+        try {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("antigravity_wishlist", JSON.stringify(next));
+            window.localStorage.setItem("kartly.wishlist", JSON.stringify(next));
+          }
+        } catch {}
+        return next;
+      });
+
+      // 3. Remove product from Cart ONLY AFTER Wishlist insertion succeeded
+      setCart((prev) => (Array.isArray(prev) ? prev.filter((l) => l && l.product && (String(l.product.id) !== pId && String((l.product as any).product_id) !== pId)) : []));
+      removeCartItemApi(pId).catch((err) => console.error("removeCartItemApi error:", err));
+
+      toast.success("Product moved to Wishlist.");
+    } catch (err) {
+      console.error("moveCartItemToWishlist API error:", err);
+      toast.error("Unable to move item to Wishlist. Please try again.");
+    }
+  }, []);
+
+
   const clearCart = React.useCallback(() => {
     setCart([]);
     clearCartApi().catch((err) => console.error("clearCartApi error:", err));
@@ -657,16 +705,50 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const toggleWishlist = React.useCallback((p: Product) => {
-    if (!p || !p.id) return;
+  const toggleWishlist = React.useCallback(async (p: Product) => {
+    if (!p) return;
+    const pId = String(p.id || (p as any).product_id || (p as any)._id);
+    if (!pId) return;
+
+    try {
+      const res = await toggleWishlistApi(pId);
+      if (res?.success && Array.isArray(res.wishlist)) {
+        const normalized = res.wishlist.map((id) => String(id));
+        setWishlist(normalized);
+        const isSaved = normalized.includes(pId);
+        toast(isSaved ? "Saved to wishlist" : "Removed from wishlist", {
+          description: p.title || (p as any).name,
+        });
+        try {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("antigravity_wishlist", JSON.stringify(normalized));
+            window.localStorage.setItem("kartly.wishlist", JSON.stringify(normalized));
+          }
+        } catch {}
+        return;
+      }
+    } catch (err) {
+      console.error("toggleWishlistApi error:", err);
+    }
+
+    // Local fallback update if API unavailable or error
     setWishlist((prev) => {
-      const current = Array.isArray(prev) ? prev : [];
-      const has = current.includes(p.id);
-      toast(has ? "Removed from wishlist" : "Saved to wishlist", { description: p.title });
-      return has ? current.filter((id) => id !== p.id) : [...current, p.id];
+      const current = Array.isArray(prev) ? prev.map((id) => String(id)) : [];
+      const has = current.includes(pId);
+      const updated = has ? current.filter((id) => id !== pId) : [...current, pId];
+      toast(has ? "Removed from wishlist" : "Saved to wishlist", {
+        description: p.title || (p as any).name,
+      });
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("antigravity_wishlist", JSON.stringify(updated));
+          window.localStorage.setItem("kartly.wishlist", JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
     });
-    toggleWishlistApi(p.id).catch((err) => console.error("toggleWishlistApi error:", err));
   }, []);
+
 
   const addRecentlyViewed = React.useCallback((id: string) => {
     if (!id) return;
@@ -1039,11 +1121,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const rateProduct = React.useCallback((orderId: string, rating: number, review: string) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, userRating: rating, userReview: review } : o))
-    );
+    setOrders((prev) => {
+      const targetOrder = prev.find((o) => o.id === orderId);
+      if (targetOrder && Array.isArray(targetOrder.items)) {
+        targetOrder.items.forEach((item: any) => {
+          if (item?.product?.id) {
+            addProductReview(item.product.id, rating, review);
+          }
+        });
+      }
+      return prev.map((o) => (o.id === orderId ? { ...o, userRating: rating, userReview: review } : o));
+    });
     toast.success("Thank you for your rating & review!");
-  }, []);
+  }, [addProductReview]);
 
   const reorderItems = React.useCallback((orderId: string) => {
     const targetOrder = orders.find((o) => o.id === orderId);
@@ -1077,6 +1167,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       clearBuyNow,
       setQty,
       removeFromCart,
+      removeFromCartCompletely,
+      moveCartItemToWishlist,
       clearCart,
       cartOpen,
       setCartOpen,
@@ -1134,6 +1226,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       clearBuyNow,
       setQty,
       removeFromCart,
+      removeFromCartCompletely,
+      moveCartItemToWishlist,
       clearCart,
       cartOpen,
       setCartOpen,
@@ -1199,6 +1293,8 @@ export function useStore() {
       clearBuyNow: () => {},
       setQty: () => {},
       removeFromCart: () => {},
+      removeFromCartCompletely: () => {},
+      moveCartItemToWishlist: () => {},
       clearCart: () => {},
       cartOpen: false,
       setCartOpen: () => {},

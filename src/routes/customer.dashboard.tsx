@@ -88,7 +88,7 @@ function CustomerDashboardPage() {
               <span className="text-xs font-semibold">Wishlist Items</span>
               <Heart className="size-4 text-rose-500" />
             </div>
-            <p className="text-xl font-extrabold text-foreground">{safeWishlist.length || 3}</p>
+            <p className="text-xl font-extrabold text-foreground">{safeWishlist.length}</p>
           </div>
 
           <div className="border border-border bg-card p-4 rounded-lg space-y-1 shadow-sm">

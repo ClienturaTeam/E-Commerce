@@ -1317,28 +1317,48 @@ app.post("/api/payment/verify", authenticateToken, async (req, res) => {
 // ==========================================
 
 app.get("/api/wishlist", authenticateToken, (req, res) => {
-  const userId = req.user.id || req.user.user_id;
-  const userWishlist = db.wishlist.filter((w) => w.userId === userId || w.user_id === userId).map((w) => w.productId);
+  const userId = String(req.user.id || req.user.user_id || "usr-demo");
+  const userWishlist = (db.wishlist || [])
+    .filter((w) => String(w.userId || w.user_id) === userId)
+    .map((w) => String(w.productId));
   res.json({ success: true, wishlist: userWishlist });
 });
 
 app.post("/api/wishlist/toggle", authenticateToken, (req, res) => {
-  const { productId } = req.body;
-  const userId = req.user.id || req.user.user_id;
+  const { productId, action } = req.body;
+  const userId = String(req.user.id || req.user.user_id || "usr-demo");
   if (!productId) return res.status(400).json({ success: false, message: "productId is required" });
 
-  const existingIndex = db.wishlist.findIndex((w) => (w.userId === userId || w.user_id === userId) && w.productId === productId);
+  const targetId = String(productId);
+  if (!db.wishlist) db.wishlist = [];
 
-  if (existingIndex >= 0) {
-    db.wishlist.splice(existingIndex, 1);
+  const existingIndex = db.wishlist.findIndex(
+    (w) => String(w.userId || w.user_id) === userId && String(w.productId) === targetId
+  );
+
+  if (action === "add") {
+    if (existingIndex < 0) {
+      db.wishlist.push({ userId, user_id: userId, productId: targetId });
+    }
+  } else if (action === "remove") {
+    if (existingIndex >= 0) {
+      db.wishlist.splice(existingIndex, 1);
+    }
   } else {
-    db.wishlist.push({ userId, user_id: userId, productId });
+    if (existingIndex >= 0) {
+      db.wishlist.splice(existingIndex, 1);
+    } else {
+      db.wishlist.push({ userId, user_id: userId, productId: targetId });
+    }
   }
 
   saveDb();
-  const userWishlist = db.wishlist.filter((w) => w.userId === userId || w.user_id === userId).map((w) => w.productId);
+  const userWishlist = db.wishlist
+    .filter((w) => String(w.userId || w.user_id) === userId)
+    .map((w) => String(w.productId));
   res.json({ success: true, wishlist: userWishlist });
 });
+
 
 // Start Express REST API Server
 app.listen(PORT, () => {

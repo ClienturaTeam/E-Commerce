@@ -1242,22 +1242,289 @@ export function getCategoryData(categorySlugOrName: string): CategoryPageData {
     Object.keys(categoryPagesData).find((k) => norm.includes(k)) ||
     "mobiles";
 
-  return categoryPagesData[key] || categoryPagesData.mobiles;
+  return categoryPagesData[key] || categoryPagesData["mobiles"]!;
 }
+
+export const serverProducts: Product[] = [
+  {
+    id: "nexon-note-5g",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80",
+    brand: "Nexon",
+    title: "Nexon Note 12 5G, 8GB RAM, 128GB, 50MP AI Camera",
+    price: 13499,
+    mrp: 18999,
+    rating: 4.3,
+    reviews: "76,431",
+    category: "Mobiles",
+    subCategory: "Smartphones",
+  },
+  {
+    id: "nexon-pro-max",
+    image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=600&q=80",
+    brand: "Nexon",
+    title: "Nexon Pro Max Flagship 5G, 12GB RAM, 256GB Storage",
+    price: 39999,
+    mrp: 49999,
+    rating: 4.6,
+    reviews: "1,12,040",
+    category: "Mobiles",
+    subCategory: "Smartphones",
+  },
+  {
+    id: "bolt-speed-5g",
+    image: "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=600&q=80",
+    brand: "Bolt",
+    title: "Bolt Speed 5G, 6GB RAM, 128GB, 5000mAh Battery",
+    price: 10999,
+    mrp: 14999,
+    rating: 4.2,
+    reviews: "45,892",
+    category: "Mobiles",
+    subCategory: "Budget Phones",
+  },
+  {
+    id: "apex-edge-ultra",
+    image: "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=600&q=80",
+    brand: "Apex",
+    title: "Apex Edge Ultra 5G, 16GB RAM, 512GB, Snapdragon 8 Gen 3",
+    price: 64999,
+    mrp: 79999,
+    rating: 4.8,
+    reviews: "28,410",
+    category: "Mobiles",
+    subCategory: "Flagship Phones",
+  },
+  {
+    id: "nexon-air-14",
+    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=600&q=80",
+    brand: "Nexon",
+    title: "Nexon Air 14 Thin & Light Laptop, 16GB RAM, 512GB SSD",
+    price: 54990,
+    mrp: 72990,
+    rating: 4.4,
+    reviews: "12,480",
+    category: "Electronics",
+    subCategory: "Laptops",
+  },
+  {
+    id: "pulseform-active-2",
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
+    brand: "Pulseform",
+    title: "Pulseform Active 2 Smartwatch with AMOLED Display",
+    price: 2199,
+    mrp: 5999,
+    rating: 4.2,
+    reviews: "38,102",
+    category: "Electronics",
+    subCategory: "Accessories",
+  },
+  {
+    id: "pulseform-buds",
+    image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80",
+    brand: "Pulseform",
+    title: "Pulseform Beat 40 Wireless Earbuds, 40h Playback",
+    price: 1099,
+    mrp: 3499,
+    rating: 4.2,
+    reviews: "52,908",
+    category: "Electronics",
+    subCategory: "Audio Devices",
+  },
+  {
+    id: "nexon-4k-tv",
+    image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=600&q=80",
+    brand: "Nexon",
+    title: "Nexon 55-inch Ultra HD 4K Smart LED TV with Dolby Audio",
+    price: 32999,
+    mrp: 45999,
+    rating: 4.5,
+    reviews: "14,320",
+    category: "Electronics",
+    subCategory: "Televisions",
+  },
+  {
+    id: "loomwear-tee-3",
+    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80",
+    brand: "Loomwear",
+    title: "Loomwear Men Pure Cotton Regular Fit T-Shirt (Pack of 3)",
+    price: 799,
+    mrp: 1999,
+    rating: 4.1,
+    reviews: "18,920",
+    category: "Fashion",
+    subCategory: "Men",
+  },
+  {
+    id: "loomwear-jeans",
+    image: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=600&q=80",
+    brand: "Loomwear",
+    title: "Loomwear Slim Fit Stretchable Casual Blue Jeans",
+    price: 1299,
+    mrp: 2799,
+    rating: 4.3,
+    reviews: "14,810",
+    category: "Fashion",
+    subCategory: "Men",
+  },
+  {
+    id: "loomwear-women-dress",
+    image: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80",
+    brand: "Zara Fit",
+    title: "Zara Fit Floral A-Line Midi Dress for Women",
+    price: 1499,
+    mrp: 2999,
+    rating: 4.5,
+    reviews: "9,420",
+    category: "Fashion",
+    subCategory: "Women",
+  },
+  {
+    id: "loomwear-kids-set",
+    image: "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=600&q=80",
+    brand: "Kids Club",
+    title: "Kids Club Printed Cotton T-Shirt & Shorts Set",
+    price: 599,
+    mrp: 1299,
+    rating: 4.4,
+    reviews: "6,310",
+    category: "Fashion",
+    subCategory: "Kids",
+  },
+  {
+    id: "pureglow-serum",
+    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80",
+    brand: "PureGlow",
+    title: "PureGlow Vitamin C Face Serum for Radiant Skin, 30ml",
+    price: 499,
+    mrp: 899,
+    rating: 4.4,
+    reviews: "21,430",
+    category: "Beauty",
+    subCategory: "Skincare",
+  },
+  {
+    id: "pureglow-lipstick",
+    image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=600&q=80",
+    brand: "Velvet Luxe",
+    title: "Velvet Luxe Matte Liquid Lipstick — Rose Crimson",
+    price: 349,
+    mrp: 699,
+    rating: 4.3,
+    reviews: "15,820",
+    category: "Beauty",
+    subCategory: "Makeup",
+  },
+  {
+    id: "homestyle-sofa",
+    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80",
+    brand: "HomeStyle",
+    title: "HomeStyle Premium 3-Seater Velvet Fabric Sofa Set",
+    price: 18999,
+    mrp: 29999,
+    rating: 4.6,
+    reviews: "4,820",
+    category: "Home",
+    subCategory: "Furniture",
+  },
+  {
+    id: "homestyle-lamp",
+    image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=600&q=80",
+    brand: "Lumina",
+    title: "Lumina Modern Minimalist Standing Floor Lamp",
+    price: 1899,
+    mrp: 3499,
+    rating: 4.5,
+    reviews: "8,910",
+    category: "Home",
+    subCategory: "Lighting",
+  },
+  {
+    id: "frostline-fridge",
+    image: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=600&q=80",
+    brand: "FrostLine",
+    title: "FrostLine 260L Double Door Convertible Refrigerator",
+    price: 24990,
+    mrp: 32990,
+    rating: 4.5,
+    reviews: "11,240",
+    category: "Appliances",
+    subCategory: "Refrigerators",
+  },
+  {
+    id: "voltwave-airfryer",
+    image: "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=600&q=80",
+    brand: "VoltWave",
+    title: "VoltWave Digital Air Fryer 4.5L with 8 Preset Menus",
+    price: 3999,
+    mrp: 7999,
+    rating: 4.6,
+    reviews: "19,830",
+    category: "Appliances",
+    subCategory: "Small Appliances",
+  },
+  {
+    id: "organica-oats",
+    image: "https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&w=600&q=80",
+    brand: "Organica",
+    title: "Organica 100% Rolled Whole Grain Oats, 1kg Pack",
+    price: 199,
+    mrp: 299,
+    rating: 4.7,
+    reviews: "34,910",
+    category: "Grocery",
+    subCategory: "Breakfast",
+  },
+  {
+    id: "fitpulse-mat",
+    image: "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&w=600&q=80",
+    brand: "FitPulse",
+    title: "FitPulse Non-Slip TPE Yoga Mat 6mm with Carry Strap",
+    price: 699,
+    mrp: 1499,
+    rating: 4.5,
+    reviews: "16,420",
+    category: "Sports",
+    subCategory: "Fitness",
+  },
+  {
+    id: "inkline-atomic",
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80",
+    brand: "Inkline",
+    title: "Inkline Everyday Habits — Paperback Bestseller",
+    price: 349,
+    mrp: 599,
+    rating: 4.6,
+    reviews: "1,02,884",
+    category: "Books",
+    subCategory: "Non-Fiction",
+  },
+];
 
 export function getAllProducts(): Product[] {
   const catProducts = Object.values(categoryPagesData).flatMap((page) =>
     page.sections.flatMap((sec) => sec.products)
   );
-  const combined = [...baseProducts, ...catProducts];
+  const combined = [...baseProducts, ...catProducts, ...serverProducts];
   return combined.filter(
-    (p, idx, self) => self.findIndex((item) => item.id === p.id) === idx
+    (p, idx, self) =>
+      self.findIndex(
+        (item) =>
+          String(item.id || (item as any).product_id || (item as any)._id) ===
+          String(p.id || (p as any).product_id || (p as any)._id)
+      ) === idx
   );
 }
 
 export function getProductById(id: string): Product {
   const all = getAllProducts();
-  const found = all.find((p) => p.id === id);
+  const targetId = String(id);
+  const found = all.find(
+    (p) =>
+      String(p.id) === targetId ||
+      String((p as any).product_id) === targetId ||
+      String((p as any)._id) === targetId
+  );
   if (found) return found;
   return all[0];
 }
+
