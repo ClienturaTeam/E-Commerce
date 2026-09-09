@@ -15,6 +15,9 @@ import {
   ChevronDown,
   ChevronUp,
   MessageSquare,
+  AlertCircle,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -80,6 +83,7 @@ function ProductDetailPage() {
     addRecentlyViewed,
     pincode,
     setPincode,
+    openAddressModal,
     user,
     openAuthModal,
     customReviews,
@@ -161,8 +165,20 @@ function ProductDetailPage() {
   const [newComment, setNewComment] = React.useState("");
 
   // Pincode State
-  const [pincodeCheckInput, setPincodeCheckInput] = React.useState(pincode || "500034");
-  const [pincodeStatus, setPincodeStatus] = React.useState<string | null>(null);
+  const [pincodeCheckInput, setPincodeCheckInput] = React.useState(pincode || "560001");
+  const [pincodeStatusObj, setPincodeStatusObj] = React.useState<
+    | { type: "empty" }
+    | { type: "checking" }
+    | { type: "invalid_format"; message: string }
+    | { type: "unavailable"; title: string; subtext: string }
+    | { type: "available"; title: string; subtext: string; location?: string }
+  >({ type: "empty" });
+
+  React.useEffect(() => {
+    if (pincode && pincode !== pincodeCheckInput) {
+      setPincodeCheckInput(pincode);
+    }
+  }, [pincode]);
 
   // Check category type
   const isFashionCategory = React.useMemo(() => {
@@ -195,13 +211,66 @@ function ProductDetailPage() {
   };
 
   // Pincode Check
-  const handlePincodeCheck = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pincodeCheckInput.length === 6) {
-      setPincode(pincodeCheckInput);
-      setPincodeStatus(`Fast Express Delivery available to ${pincodeCheckInput}`);
-    } else {
-      setPincodeStatus("Please enter a valid 6-digit pincode.");
+  const handlePincodeCheck = async (e?: React.FormEvent, overridePin?: string) => {
+    if (e) e.preventDefault();
+    const pin = (overridePin || pincodeCheckInput).trim();
+
+    // 1. EMPTY PIN
+    if (!pin) {
+      setPincodeStatusObj({ type: "empty" });
+      return;
+    }
+
+    // 2. INVALID FORMAT (< 6 digits, letters, starts with 0)
+    if (pin.length !== 6 || !/^\d{6}$/.test(pin) || pin.startsWith("0")) {
+      setPincodeStatusObj({
+        type: "invalid_format",
+        message: "❌ Invalid PIN code. Must be 6 digits.",
+      });
+      return;
+    }
+
+    // 6. LOADING STATE (while checking)
+    setPincodeStatusObj({ type: "checking" });
+
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+      if (!res.ok) {
+        setPincodeStatusObj({
+          type: "unavailable",
+          title: "❌ Delivery Currently Unavailable",
+          subtext: "Invalid or non-existent PIN code.",
+        });
+        return;
+      }
+
+      const data = await res.json();
+      if (data && data[0] && data[0].Status === "Success" && Array.isArray(data[0].PostOffice) && data[0].PostOffice.length > 0) {
+        const po = data[0].PostOffice[0];
+        const locationName = po.District && po.State ? `${po.District}, ${po.State}` : po.Name || "";
+
+        setPincode(pin);
+        setPincodeStatusObj({
+          type: "available",
+          title: "✓ Delivery Available",
+          subtext: "Estimated delivery: 2-4 business days",
+          location: locationName,
+        });
+      } else {
+        // 3. 6 DIGITS BUT DOES NOT EXIST (e.g. 000000, 999999, 111111)
+        setPincodeStatusObj({
+          type: "unavailable",
+          title: "❌ Delivery Currently Unavailable",
+          subtext: "Invalid or non-existent PIN code.",
+        });
+      }
+    } catch (err) {
+      console.error("Pincode check error:", err);
+      setPincodeStatusObj({
+        type: "unavailable",
+        title: "❌ Delivery Currently Unavailable",
+        subtext: "Could not verify PIN code. Please try again.",
+      });
     }
   };
 
@@ -227,6 +296,10 @@ function ProductDetailPage() {
   const handleBuyNow = () => {
     if (!isSelectedSizeInStock) {
       toast.error("Selected size is out of stock!");
+      return;
+    }
+    if (pincodeStatusObj.type === "unavailable" || pincodeStatusObj.type === "invalid_format") {
+      toast.error("❌ Delivery Currently Unavailable for this PIN code.");
       return;
     }
     if (!user || !user.isAuth) {
@@ -318,9 +391,12 @@ function ProductDetailPage() {
       .slice(0, 6);
   }, [product]);
 
-  const saved = wishlist.some(
-    (id) => String(id) === String(product.id || (product as any).product_id || (product as any)._id)
-  );
+  const saved = wishlist.some((item) => {
+    if (!item) return false;
+    const itemId = typeof item === "string" ? item : String((item as any)?.id || (item as any)?.product_id || (item as any)?._id || "");
+    const prodId = String(product?.id || (product as any)?.product_id || (product as any)?._id);
+    return itemId === prodId;
+  });
 
   const emiMonthly = Math.round(dynamicPrice / 6);
 
@@ -574,31 +650,80 @@ function ProductDetailPage() {
 
             {/* Pincode Availability Checker */}
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <MapPin className="size-3.5 text-brand" />
-                Delivery & Service Availability
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <MapPin className="size-3.5 text-brand" />
+                  Delivery & Service Availability
+                </label>
+                <button
+                  type="button"
+                  onClick={openAddressModal}
+                  className="text-[11px] font-semibold text-accent hover:underline cursor-pointer"
+                >
+                  Change Location
+                </button>
+              </div>
               <form onSubmit={handlePincodeCheck} className="flex gap-2 max-w-sm">
                 <input
                   type="text"
                   maxLength={6}
                   value={pincodeCheckInput}
-                  onChange={(e) => setPincodeCheckInput(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setPincodeCheckInput(val);
+                    // VALID PIN -> CHANGE TO INVALID PIN: Immediately wipe previous status
+                    setPincodeStatusObj({ type: "empty" });
+                  }}
                   placeholder="Enter 6-digit Pincode"
                   className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-brand focus:outline-none"
                 />
                 <button
                   type="submit"
-                  className="rounded-lg bg-brand px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-brand-deep cursor-pointer"
+                  disabled={pincodeStatusObj.type === "checking"}
+                  className="rounded-lg bg-brand px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-brand-deep cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
+                  {pincodeStatusObj.type === "checking" && <Loader2 className="size-3 animate-spin" />}
                   Check
                 </button>
               </form>
-              {pincodeStatus && (
-                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="size-3.5" />
-                  {pincodeStatus}
-                </p>
+
+              {pincodeStatusObj.type === "checking" && (
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-brand mt-1 animate-pulse">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>Checking delivery availability...</span>
+                </div>
+              )}
+
+              {pincodeStatusObj.type === "invalid_format" && (
+                <div className="mt-1 text-xs font-semibold text-destructive flex items-center gap-1.5">
+                  <AlertCircle className="size-3.5 shrink-0" />
+                  <span>{pincodeStatusObj.message}</span>
+                </div>
+              )}
+
+              {pincodeStatusObj.type === "unavailable" && (
+                <div className="mt-2 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 space-y-0.5">
+                  <p className="text-xs font-bold text-destructive flex items-center gap-1.5">
+                    <XCircle className="size-4 shrink-0" />
+                    <span>{pincodeStatusObj.title}</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground pl-5.5">
+                    {pincodeStatusObj.subtext}
+                  </p>
+                </div>
+              )}
+
+              {pincodeStatusObj.type === "available" && (
+                <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 space-y-0.5">
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-4 shrink-0" />
+                    <span>{pincodeStatusObj.title}</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground pl-5.5">
+                    {pincodeStatusObj.subtext}
+                    {pincodeStatusObj.location ? ` • Delivery to ${pincodeStatusObj.location}` : ""}
+                  </p>
+                </div>
               )}
             </div>
 

@@ -13,6 +13,9 @@ import {
   Heart,
   Package,
   MapPinCheck,
+  Wallet,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -25,7 +28,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { categories, products, inr } from "./catalog";
 import { AuthDialog } from "./AuthDialog";
+import { DeliveryAddressModal } from "./DeliveryAddressModal";
 import { CameraSearchDialog } from "./CameraSearchDialog";
+import { VoiceSearchDialog } from "./VoiceSearchDialog";
+import { UserWalletModal, getSavedWalletState } from "./UserWalletModal";
 import { useStore } from "./store-context";
 import { useEnterpriseAuth } from "@/components/auth/enterprise-auth-context";
 
@@ -46,7 +52,46 @@ export function SiteHeader() {
     setPincode,
     wishlist,
     orders,
+    addresses,
+    selectedAddressId,
+    deliveryCity,
+    openAddressModal,
   } = useStore();
+
+  const [isWalletOpen, setIsWalletOpen] = React.useState(false);
+  const [walletTab, setWalletTab] = React.useState<"overview" | "add" | "refund" | "transactions">("overview");
+  const [walletBalance, setWalletBalance] = React.useState(() => {
+    try {
+      return getSavedWalletState().balance;
+    } catch {
+      return 2450;
+    }
+  });
+
+  React.useEffect(() => {
+    const updateBalance = (e: any) => {
+      if (e.detail?.balance !== undefined) {
+        setWalletBalance(e.detail.balance);
+      } else {
+        try {
+          setWalletBalance(getSavedWalletState().balance);
+        } catch {}
+      }
+    };
+    window.addEventListener("kartly_wallet_updated", updateBalance);
+    return () => window.removeEventListener("kartly_wallet_updated", updateBalance);
+  }, []);
+
+  const activeAddress = React.useMemo(() => {
+    return addresses.find((a) => a.id === selectedAddressId) || addresses[0];
+  }, [addresses, selectedAddressId]);
+
+  const displayDeliveryTarget = React.useMemo(() => {
+    if (activeAddress?.city) {
+      return `${activeAddress.city} ${activeAddress.pincode || pincode}`;
+    }
+    return `${deliveryCity || "India"} ${pincode || "560001"}`;
+  }, [activeAddress, deliveryCity, pincode]);
 
   const location = useLocation();
 
@@ -74,6 +119,7 @@ export function SiteHeader() {
   }, [location.pathname]);
 
   const [cameraOpen, setCameraOpen] = React.useState(false);
+  const [voiceOpen, setVoiceOpen] = React.useState(false);
   const [draft, setDraft] = React.useState(query);
   const [isListening, setIsListening] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
@@ -218,11 +264,11 @@ export function SiteHeader() {
               <button
                 type="button"
                 aria-label="Voice search"
-                onClick={handleVoiceSearch}
-                className={`text-muted-foreground hover:text-foreground transition-colors cursor-pointer ${
-                  isListening ? "text-brand animate-pulse" : ""
+                onClick={() => setVoiceOpen(true)}
+                className={`rounded-md p-1 text-muted-foreground hover:bg-brand/10 hover:text-brand transition-all cursor-pointer ${
+                  voiceOpen ? "text-brand bg-brand/10 scale-110 animate-pulse" : ""
                 }`}
-                title="Voice Search"
+                title="Search with Voice (Mic)"
               >
                 <Mic className="size-4" />
               </button>
@@ -232,8 +278,10 @@ export function SiteHeader() {
                 type="button"
                 aria-label="Camera search"
                 onClick={() => setCameraOpen(true)}
-                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                title="Image Search"
+                className={`rounded-md p-1 text-muted-foreground hover:bg-brand/10 hover:text-brand transition-all cursor-pointer ${
+                  cameraOpen ? "text-brand bg-brand/10 scale-110" : ""
+                }`}
+                title="Visual Image Search (Camera)"
               >
                 <Camera className="size-4" />
               </button>
@@ -316,15 +364,44 @@ export function SiteHeader() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/orders" className="flex items-center gap-2 cursor-pointer w-full">
-                      <Package className="size-4 text-brand" />
-                      <span>My Orders ({orders.length})</span>
+                    <Link to="/orders" className="flex items-center justify-between cursor-pointer w-full py-2">
+                      <div className="flex items-center gap-2.5">
+                        <Package className="size-4 text-brand" />
+                        <span className="font-semibold text-xs">My Orders</span>
+                      </div>
+                      {orders.length > 0 && (
+                        <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded-full text-foreground">
+                          {orders.length}
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setWalletTab("main");
+                      setIsWalletOpen(true);
+                    }}
+                    className="flex items-center justify-between cursor-pointer w-full py-2"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Wallet className="size-4 text-amber-500" />
+                      <span className="font-bold text-xs">Kartly Wallet</span>
+                    </div>
+                    <span className="text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30 shadow-2xs">
+                      {inr(walletBalance)}
+                    </span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/wishlist" className="flex items-center gap-2 cursor-pointer w-full">
-                      <Heart className="size-4 text-brand" />
-                      <span>Wishlist ({wishlist.length})</span>
+                    <Link to="/wishlist" className="flex items-center justify-between cursor-pointer w-full py-2">
+                      <div className="flex items-center gap-2.5">
+                        <Heart className="size-4 text-rose-500" />
+                        <span className="font-semibold text-xs">Wishlist</span>
+                      </div>
+                      {wishlist.length > 0 && (
+                        <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded-full text-foreground">
+                          {wishlist.length}
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -333,36 +410,77 @@ export function SiteHeader() {
                       entLogout();
                       signOut();
                     }}
-                    className="cursor-pointer text-red-600 dark:text-red-400 font-bold"
+                    className="cursor-pointer text-red-600 dark:text-red-400 font-bold py-2"
                   >
-                    <LogOut className="size-4" />
+                    <LogOut className="size-4 mr-1.5" />
                     <span>Logout Session</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : user && user.isAuth ? (
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 transition-colors hover:bg-brand-deep cursor-pointer">
-                  <UserRound className="size-4" />
-                  <span className="max-w-[120px] truncate">{user.name}</span>
+                <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-3 py-1.5 transition-all hover:bg-brand-deep/80 border border-transparent hover:border-brand-deep cursor-pointer">
+                  <div className="size-6 rounded-full bg-accent/20 text-accent font-bold text-[10px] flex items-center justify-center border border-accent/40">
+                    {(user.name || "U").slice(0, 1).toUpperCase()}
+                  </div>
+                  <span className="max-w-[120px] truncate font-bold text-xs">{user.name}</span>
                   <ChevronDown className="size-3.5 opacity-70" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-64 p-1.5 rounded-2xl shadow-xl border border-border bg-card">
+                  {/* Premium User Profile Header */}
+                  <div className="p-3 border-b border-border/60 bg-muted/40 rounded-xl mb-1.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-zinc-950 font-black text-xs flex items-center justify-center shadow-xs">
+                        {(user.name || "U").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate text-foreground leading-tight">{user.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{user.email || "demo@kartly.com"}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/25 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                      <Sparkles className="size-3 shrink-0" />
+                      <span>Explore Plus VIP Member</span>
+                    </div>
+                  </div>
+
                   <DropdownMenuItem asChild>
-                    <Link to="/orders" className="flex items-center gap-2 cursor-pointer w-full">
-                      <Package className="size-4 text-brand" />
-                      <span>My Orders ({orders.length})</span>
+                    <Link to="/orders" className="flex items-center justify-between cursor-pointer w-full py-2 px-2.5 rounded-lg">
+                      <div className="flex items-center gap-2.5">
+                        <Package className="size-4 text-brand" />
+                        <span className="font-semibold text-xs">My Orders</span>
+                      </div>
+                      {orders.length > 0 && (
+                        <span className="text-[10px] font-bold bg-accent/20 text-accent px-1.5 py-0.5 rounded-full">
+                          {orders.length}
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/wishlist" className="flex items-center gap-2 cursor-pointer w-full">
-                      <Heart className="size-4 text-brand" />
-                      <span>Wishlist ({wishlist.length})</span>
-                    </Link>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setWalletTab("main");
+                      setIsWalletOpen(true);
+                    }}
+                    className="flex items-center justify-between cursor-pointer w-full py-2 px-2.5 rounded-lg group hover:bg-amber-500/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Wallet className="size-4 text-amber-500" />
+                      <div>
+                        <span className="font-bold text-xs block leading-tight">Kartly Wallet</span>
+                        <span className="text-[9px] text-muted-foreground">1-Click Pay & Rewards</span>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-amber-500/10 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-500/30 shadow-2xs">
+                      {inr(walletBalance)}
+                    </span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 dark:text-red-400">
-                    <LogOut className="size-4" />
+
+                  <DropdownMenuSeparator className="my-1" />
+
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 dark:text-red-400 font-bold py-2 px-2.5 rounded-lg hover:bg-red-500/10">
+                    <LogOut className="size-4 mr-2" />
                     <span>Logout</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -377,37 +495,27 @@ export function SiteHeader() {
               </Link>
             )}
 
-            <Link
-              to="/seller"
-              className="hidden items-center gap-1.5 transition-opacity hover:opacity-80 sm:flex cursor-pointer"
-            >
-              <Store className="size-4" />
-              Become a Seller
-            </Link>
-
-            <Link
-              to="/orders"
-              className="relative flex items-center gap-1.5 transition-opacity hover:opacity-80 cursor-pointer"
-              title="View My Orders"
-            >
-              <Package className="size-4" />
-              <span className="hidden sm:inline">My Orders</span>
-              {orders.length > 0 && (
-                <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-accent-foreground text-center">
-                  {orders.length}
-                </span>
-              )}
-            </Link>
-
+            {/* Dynamic Active Wishlist Button */}
             <Link
               to="/wishlist"
-              className="relative flex items-center gap-1.5 transition-opacity hover:opacity-80 cursor-pointer"
+              className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
+                location.pathname === "/wishlist"
+                  ? "bg-rose-500/25 text-rose-300 font-bold ring-1 ring-rose-400/50 shadow-sm"
+                  : "text-primary-foreground/90 hover:text-primary-foreground hover:bg-white/10 active:scale-95"
+              }`}
               title="View Wishlist"
+              aria-label={`Wishlist (${wishlist.length} items)`}
             >
-              <Heart className="size-4" />
-              Wishlist
+              <Heart
+                className={`size-4 transition-transform duration-200 group-hover:scale-110 ${
+                  wishlist.length > 0 || location.pathname === "/wishlist"
+                    ? "fill-rose-500 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse"
+                    : "text-primary-foreground group-hover:text-rose-400"
+                }`}
+              />
+              <span className="font-semibold text-xs tracking-wide">Wishlist</span>
               {wishlist.length > 0 && (
-                <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-accent-foreground text-center">
+                <span className="flex items-center justify-center min-w-4.5 h-4.5 px-1.5 rounded-full bg-rose-500 text-[10px] font-black leading-none text-white shadow-sm ring-1 ring-white/30 animate-in zoom-in-75">
                   {wishlist.length}
                 </span>
               )}
@@ -427,18 +535,25 @@ export function SiteHeader() {
             </button>
           </nav>
 
-          <p className="order-4 flex w-full items-center gap-1.5 text-xs md:order-none md:w-auto">
-            <MapPin className="size-3.5 text-accent" />
-            Deliver to
-            <input
-              aria-label="Delivery pincode"
-              inputMode="numeric"
-              maxLength={6}
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
-              className="w-14 bg-transparent font-semibold underline decoration-dotted outline-none text-accent"
-            />
-          </p>
+          <button
+            type="button"
+            onClick={openAddressModal}
+            title="Click to change delivery address or PIN code"
+            className="order-4 flex w-full items-center gap-2 rounded-lg border border-border/40 bg-card/20 px-2.5 py-1.5 text-xs text-foreground/90 transition-all hover:border-accent/60 hover:bg-card/40 hover:text-accent sm:w-auto md:order-none cursor-pointer group shadow-2xs"
+          >
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent transition-transform group-hover:scale-110">
+              <MapPin className="size-3.5 text-accent animate-pulse" />
+            </div>
+            <div className="flex flex-col items-start leading-none text-left">
+              <span className="text-[10px] font-medium text-muted-foreground group-hover:text-accent/80 flex items-center gap-1">
+                Deliver to
+                <ChevronDown className="size-2.5 transition-transform group-hover:translate-y-0.5 text-muted-foreground group-hover:text-accent" />
+              </span>
+              <span className="font-bold text-accent truncate max-w-[140px] text-xs">
+                {displayDeliveryTarget}
+              </span>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -493,7 +608,14 @@ export function SiteHeader() {
       </div>
 
       <AuthDialog />
+      <DeliveryAddressModal />
       <CameraSearchDialog open={cameraOpen} onOpenChange={setCameraOpen} />
+      <VoiceSearchDialog open={voiceOpen} onOpenChange={setVoiceOpen} />
+      <UserWalletModal
+        open={isWalletOpen}
+        onOpenChange={setIsWalletOpen}
+        initialTab={walletTab}
+      />
     </header>
   );
 }

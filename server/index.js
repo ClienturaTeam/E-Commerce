@@ -905,6 +905,26 @@ app.post("/api/addresses", authenticateToken, async (req, res) => {
   const { name, phone, house, street, address_line, city, state, pincode, type = "home", isDefault = false } = req.body;
   const userId = req.user.id || req.user.user_id;
 
+  const pincodeStr = String(pincode || "").trim();
+  if (!/^[1-9][0-9]{5}$/.test(pincodeStr)) {
+    return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+  }
+
+  try {
+    const postalRes = await fetch(`https://api.postalpincode.in/pincode/${pincodeStr}`);
+    if (postalRes.ok) {
+      const data = await postalRes.json();
+      if (!data || !data[0] || data[0].Status !== "Success" || !Array.isArray(data[0].PostOffice) || data[0].PostOffice.length === 0) {
+        return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+    }
+  } catch (error) {
+    console.error("Error verifying PIN code on address save:", error);
+    return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+  }
+
   if (isDefault) {
     db.addresses.forEach((a) => {
       if (a.userId === userId || a.user_id === userId) a.isDefault = false;
@@ -1082,6 +1102,34 @@ app.post("/api/orders/place", authenticateToken, async (req, res) => {
     return res.status(400).json({ success: false, message: "No items to order." });
   }
 
+  // --- Pincode Validation ---
+  const orderAddress = address || db.addresses.find((a) => (a.userId === userId || a.user_id === userId) && a.isDefault) || db.addresses[0];
+
+  if (!orderAddress || !orderAddress.pincode) {
+    return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+  }
+
+  const pincodeStr = String(orderAddress.pincode).trim();
+  if (!/^[1-9][0-9]{5}$/.test(pincodeStr)) {
+    return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+  }
+
+  try {
+    const postalRes = await fetch(`https://api.postalpincode.in/pincode/${pincodeStr}`);
+    if (postalRes.ok) {
+      const data = await postalRes.json();
+      if (!data || !data[0] || data[0].Status !== "Success" || !Array.isArray(data[0].PostOffice) || data[0].PostOffice.length === 0) {
+        return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+    }
+  } catch (error) {
+    console.error("Error verifying PIN code:", error);
+    return res.status(400).json({ success: false, message: "Delivery Currently Unavailable for this PIN code." });
+  }
+  // -------------------------
+
   const orderId = `KARTLY-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(
     10000 + Math.random() * 90000
   )}`;
@@ -1107,7 +1155,7 @@ app.post("/api/orders/place", authenticateToken, async (req, res) => {
     payment_method: activePaymentMethod,
     expectedDelivery: formattedDelivery,
     items: orderItems,
-    address: address || db.addresses.find((a) => (a.userId === userId || a.user_id === userId) && a.isDefault) || db.addresses[0],
+    address: orderAddress,
     payment: {
       method: activePaymentMethod,
       status: activePaymentMethod === "cod" ? "pending" : "success",

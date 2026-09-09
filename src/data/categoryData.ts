@@ -21,7 +21,7 @@ export const categoryPagesData: Record<string, CategoryPageData> = {
     slug: "fashion",
     name: "Fashion & Lifestyle",
     description: "Trending fashion for Men, Women & Kids — Ethnic, Casual, Western, Footwear & Accessories.",
-    bannerImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1400&q=80",
+    bannerImage: "/images/fashion/fashion_hero_1.jpg",
     sections: [
       // --- MEN SECTION ---
       {
@@ -45,7 +45,7 @@ export const categoryPagesData: Record<string, CategoryPageData> = {
           },
           {
             id: "loomwear-men-jeans",
-            image: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=600&q=80",
+            image: "/images/fashion/mens_denim_jeans.jpg",
             brand: "H&M",
             title: "H&M Slim Fit Stretchable Denim Jeans for Men",
             price: 1299,
@@ -1356,7 +1356,7 @@ export const serverProducts: Product[] = [
   },
   {
     id: "loomwear-jeans",
-    image: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=600&q=80",
+    image: "/images/fashion/mens_denim_jeans.jpg",
     brand: "Loomwear",
     title: "Loomwear Slim Fit Stretchable Casual Blue Jeans",
     price: 1299,

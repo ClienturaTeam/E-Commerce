@@ -20,9 +20,12 @@ export function QuickViewModal({
 
   if (!product || !open) return null;
 
-  const saved = wishlist.some(
-    (id) => String(id) === String(product.id || (product as any).product_id || (product as any)._id)
-  );
+  const saved = wishlist.some((item) => {
+    if (!item) return false;
+    const itemId = typeof item === "string" ? item : String((item as any)?.id || (item as any)?.product_id || (item as any)?._id || "");
+    const prodId = String(product.id || (product as any).product_id || (product as any)._id);
+    return itemId === prodId;
+  });
 
   const off = Math.round(((product.mrp - product.price) / product.mrp) * 100);
   const gstInfo = getGstBreakdown(product.price, 1);

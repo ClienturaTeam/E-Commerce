@@ -165,7 +165,7 @@ export type StoreState = {
   clearCart: () => void;
   cartOpen: boolean;
   setCartOpen: (v: boolean) => void;
-  wishlist: string[];
+  wishlist: any[];
   toggleWishlist: (p: Product) => void;
   recentlyViewed: string[];
   addRecentlyViewed: (id: string) => void;
@@ -201,11 +201,19 @@ export type StoreState = {
   removeCoupon: () => void;
   couponDiscountAmount: number;
 
-  // Pincode
+  // Pincode & Delivery Location
   pincode: string;
   setPincode: (v: string) => void;
   savedAddress: DeliveryAddress | null;
   setSavedAddress: (addr: DeliveryAddress | null) => void;
+  isAddressModalOpen: boolean;
+  openAddressModal: () => void;
+  closeAddressModal: () => void;
+  selectedAddressId: string;
+  setSelectedAddressId: (id: string) => void;
+  deliveryCity: string;
+  setDeliveryCity: (city: string) => void;
+  selectDeliveryAddress: (address: Address) => void;
 
   // Custom Product Reviews
   customReviews: Record<string, any[]>;
@@ -337,21 +345,43 @@ const normalizeOrder = (o: any): Order | null => {
 };
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const existingStore = React.useContext(StoreContext);
+  if (existingStore) {
+    return <>{children}</>;
+  }
+
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState("For You");
-  const [cart, setCart] = React.useState<CartLine[]>([]);
-  const [buyNowProduct, setBuyNowProduct] = React.useState<CartLine | null>(null);
+  const [cart, setCart] = React.useState<CartLine[]>(() => {
+    const data1 = safeRead<any[]>("cartItems", []);
+    const data2 = safeRead<any[]>("antigravity_cart", []);
+    const data3 = safeRead<any[]>("kartly.cart", []);
+    const rawCart = Array.isArray(data1) && data1.length > 0 ? data1 : Array.isArray(data2) && data2.length > 0 ? data2 : Array.isArray(data3) ? data3 : [];
+    return rawCart.map(normalizeProductLine).filter((item): item is CartLine => Boolean(item));
+  });
+  const [buyNowProduct, setBuyNowProduct] = React.useState<CartLine | null>(() => {
+    const savedBuyNow = safeRead<any>("buyNowProduct", null);
+    return savedBuyNow ? normalizeProductLine(savedBuyNow) : null;
+  });
   const [cartOpen, setCartOpen] = React.useState(false);
-  const [wishlist, setWishlist] = React.useState<string[]>([]);
+  const [wishlist, setWishlist] = React.useState<any[]>(() => {
+    return safeRead<any[]>("antigravity_wishlist", safeRead<any[]>("kartly.wishlist", []));
+  });
   const [recentlyViewed, setRecentlyViewed] = React.useState<string[]>([]);
   const [user, setUser] = React.useState<UserProfile | null>(DEFAULT_USER);
   const [addresses, setAddresses] = React.useState<Address[]>(INITIAL_ADDRESSES);
   const [orders, setOrders] = React.useState<Order[]>(INITIAL_ORDERS);
   const [appliedCoupon, setAppliedCoupon] = React.useState<Coupon | null>(null);
   const [pincode, setPincode] = React.useState("560001");
+  const [deliveryCity, setDeliveryCity] = React.useState("Bengaluru");
+  const [selectedAddressId, setSelectedAddressId] = React.useState("addr-1");
+  const [isAddressModalOpen, setIsAddressModalOpen] = React.useState(false);
   const [savedAddress, setSavedAddress] = React.useState<DeliveryAddress | null>(null);
   const [authModalOpen, setAuthModalOpen] = React.useState(false);
   const [authModalReason, setAuthModalReason] = React.useState("");
+
+  const openAddressModal = React.useCallback(() => setIsAddressModalOpen(true), []);
+  const closeAddressModal = React.useCallback(() => setIsAddressModalOpen(false), []);
 
   React.useEffect(() => {
     const data1 = safeRead<any[]>("cartItems", []);
@@ -375,6 +405,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setRecentlyViewed(safeRead<string[]>("antigravity_recent", safeRead<string[]>("kartly.recentlyViewed", [])));
     setUser(safeRead<UserProfile | null>("antigravity_user", safeRead<UserProfile | null>("kartly.user", DEFAULT_USER)));
     setPincode(safeRead<string>("antigravity_pincode", safeRead<string>("kartly.pincode", "560001")));
+    setDeliveryCity(safeRead<string>("kartly.delivery_city", "Bengaluru"));
+    setSelectedAddressId(safeRead<string>("kartly.selected_address_id", "addr-1"));
     setSavedAddress(safeRead<DeliveryAddress | null>("antigravity_address", null));
     setAddresses(safeRead<Address[]>("kartly.addresses", INITIAL_ADDRESSES));
     const rawOrders = safeRead<any[]>("kartly.orders", INITIAL_ORDERS);
@@ -507,6 +539,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
   }, [pincode]);
+
+  React.useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("kartly.selected_address_id", JSON.stringify(selectedAddressId));
+      }
+    } catch {}
+  }, [selectedAddressId]);
+
+  React.useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("kartly.delivery_city", JSON.stringify(deliveryCity));
+      }
+    } catch {}
+  }, [deliveryCity]);
 
   React.useEffect(() => {
     try {
@@ -705,48 +753,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const toggleWishlist = React.useCallback(async (p: Product) => {
+  const toggleWishlist = React.useCallback((p: Product) => {
     if (!p) return;
     const pId = String(p.id || (p as any).product_id || (p as any)._id);
     if (!pId) return;
 
-    try {
-      const res = await toggleWishlistApi(pId);
-      if (res?.success && Array.isArray(res.wishlist)) {
-        const normalized = res.wishlist.map((id) => String(id));
-        setWishlist(normalized);
-        const isSaved = normalized.includes(pId);
-        toast(isSaved ? "Saved to wishlist" : "Removed from wishlist", {
-          description: p.title || (p as any).name,
-        });
-        try {
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("antigravity_wishlist", JSON.stringify(normalized));
-            window.localStorage.setItem("kartly.wishlist", JSON.stringify(normalized));
-          }
-        } catch {}
-        return;
-      }
-    } catch (err) {
-      console.error("toggleWishlistApi error:", err);
-    }
-
-    // Local fallback update if API unavailable or error
+    // 1. Synchronous optimistic state & storage update (0ms response time)
     setWishlist((prev) => {
-      const current = Array.isArray(prev) ? prev.map((id) => String(id)) : [];
-      const has = current.includes(pId);
-      const updated = has ? current.filter((id) => id !== pId) : [...current, pId];
-      toast(has ? "Removed from wishlist" : "Saved to wishlist", {
-        description: p.title || (p as any).name,
+      const current = Array.isArray(prev) ? prev : [];
+      const has = current.some((item) => {
+        if (!item) return false;
+        const id = typeof item === "string" ? item : String((item as any)?.id || (item as any)?.product_id || (item as any)?._id || "");
+        return id === pId;
       });
+
+      const updated = has
+        ? current.filter((item) => {
+            if (!item) return false;
+            const id = typeof item === "string" ? item : String((item as any)?.id || (item as any)?.product_id || (item as any)?._id || "");
+            return id !== pId;
+          })
+        : [...current, p];
+
       try {
         if (typeof window !== "undefined") {
           window.localStorage.setItem("antigravity_wishlist", JSON.stringify(updated));
           window.localStorage.setItem("kartly.wishlist", JSON.stringify(updated));
         }
       } catch {}
+
+      toast.success(has ? "Removed from Wishlist" : "Saved to Wishlist ❤️", {
+        description: p.title || (p as any).name,
+      });
+
       return updated;
     });
+
+    // 2. Non-blocking fire-and-forget backend sync
+    toggleWishlistApi(pId).catch(() => {});
   }, []);
 
 
@@ -756,6 +800,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const current = Array.isArray(prev) ? prev : [];
       const clean = current.filter((i) => i !== id);
       return [id, ...clean].slice(0, 12);
+    });
+  }, []);
+
+  // Select Active Delivery Address & Sync
+  const selectDeliveryAddress = React.useCallback((addr: Address) => {
+    if (!addr) return;
+    setSelectedAddressId(addr.id);
+    if (addr.pincode) setPincode(addr.pincode);
+    if (addr.city) setDeliveryCity(addr.city);
+    setSavedAddress({
+      fullName: addr.name,
+      phone: addr.phone,
+      pincode: addr.pincode,
+      addressLine: `${addr.house}, ${addr.street}`,
+      city: addr.city,
+      state: addr.state,
+      landmark: addr.landmark,
+      addressType: addr.type === "work" ? "work" : "home",
+    });
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("kartly.selected_address_id", JSON.stringify(addr.id));
+        if (addr.city) window.localStorage.setItem("kartly.delivery_city", JSON.stringify(addr.city));
+        if (addr.pincode) {
+          window.localStorage.setItem("antigravity_pincode", JSON.stringify(addr.pincode));
+          window.localStorage.setItem("kartly.pincode", JSON.stringify(addr.pincode));
+        }
+      }
+    } catch {}
+    toast.success("Delivery address selected", {
+      description: `Delivering to ${addr.name} - ${addr.city} (${addr.pincode})`,
     });
   }, []);
 
@@ -769,20 +844,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, fullAddr];
     });
-    toast.success("Address added");
-  }, []);
+    selectDeliveryAddress(fullAddr);
+    addAddressApi(fullAddr).catch(() => {});
+    toast.success("Address added & set as active delivery location");
+  }, [selectDeliveryAddress]);
 
   const editAddress = React.useCallback((id: string, updatedFields: Partial<Address>) => {
     setAddresses((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...updatedFields } : a))
+      prev.map((a) => {
+        if (a.id === id) {
+          const merged = { ...a, ...updatedFields };
+          if (selectedAddressId === id) {
+            if (merged.pincode) setPincode(merged.pincode);
+            if (merged.city) setDeliveryCity(merged.city);
+          }
+          return merged;
+        }
+        return a;
+      })
     );
     toast.success("Address updated");
-  }, []);
+  }, [selectedAddressId]);
 
   const deleteAddress = React.useCallback((id: string) => {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
+    setAddresses((prev) => {
+      const filtered = prev.filter((a) => a.id !== id);
+      if (selectedAddressId === id && filtered.length > 0) {
+        selectDeliveryAddress(filtered[0]!);
+      }
+      return filtered;
+    });
+    deleteAddressApi(id).catch(() => {});
     toast("Address removed");
-  }, []);
+  }, [selectedAddressId, selectDeliveryAddress]);
 
   const setDefaultAddress = React.useCallback((id: string) => {
     setAddresses((prev) =>
@@ -859,6 +953,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       const selectedAddress =
         addresses.find((a) => a.id === addressId) || addresses[0] || INITIAL_ADDRESSES[0]!;
+
+      const pin = String(selectedAddress?.pincode || "").trim();
+      if (!/^[1-9][0-9]{5}$/.test(pin)) {
+        toast.error("❌ Delivery Currently Unavailable for this PIN code.");
+        return null;
+      }
 
       const now = new Date();
       const orderDate = now.toLocaleDateString("en-IN", {
@@ -1201,8 +1301,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       couponDiscountAmount,
       pincode,
       setPincode,
+      deliveryCity,
+      setDeliveryCity,
       savedAddress,
       setSavedAddress,
+      selectedAddressId,
+      setSelectedAddressId,
+      selectDeliveryAddress,
+      isAddressModalOpen,
+      openAddressModal,
+      closeAddressModal,
       customReviews,
       addProductReview,
     }),
@@ -1260,8 +1368,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       couponDiscountAmount,
       pincode,
       setPincode,
+      deliveryCity,
+      setDeliveryCity,
       savedAddress,
       setSavedAddress,
+      selectedAddressId,
+      setSelectedAddressId,
+      selectDeliveryAddress,
+      isAddressModalOpen,
+      openAddressModal,
+      closeAddressModal,
       customReviews,
       addProductReview,
     ]
@@ -1327,8 +1443,16 @@ export function useStore() {
       couponDiscountAmount: 0,
       pincode: "560001",
       setPincode: () => {},
+      deliveryCity: "Bengaluru",
+      setDeliveryCity: () => {},
       savedAddress: null,
       setSavedAddress: () => {},
+      selectedAddressId: "addr-1",
+      setSelectedAddressId: () => {},
+      selectDeliveryAddress: () => {},
+      isAddressModalOpen: false,
+      openAddressModal: () => {},
+      closeAddressModal: () => {},
       customReviews: {},
       addProductReview: () => {},
     };

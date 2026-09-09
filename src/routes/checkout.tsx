@@ -51,6 +51,8 @@ function CheckoutPage() {
     placeOrder,
     openAuthModal,
     pincode,
+    selectedAddressId,
+    selectDeliveryAddress,
   } = useStore();
 
   const router = useRouter();
@@ -77,8 +79,14 @@ function CheckoutPage() {
 
   const [activeStep, setActiveStep] = React.useState<1 | 2 | 3 | 4>(2);
   const [selectedAddrId, setSelectedAddrId] = React.useState<string>(
-    addresses[0]?.id || "addr-1"
+    selectedAddressId || addresses[0]?.id || "addr-1"
   );
+
+  React.useEffect(() => {
+    if (selectedAddressId) {
+      setSelectedAddrId(selectedAddressId);
+    }
+  }, [selectedAddressId]);
   const [showAddAddressForm, setShowAddAddressForm] = React.useState(false);
   // New Address Form State
   const [newAddr, setNewAddr] = React.useState({
@@ -137,11 +145,85 @@ function CheckoutPage() {
   // Address Management State
   const [editingAddr, setEditingAddr] = React.useState<Address | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
+  const [pincodeState, setPincodeState] = React.useState<{ status: "idle" | "loading" | "valid" | "invalid"; message: string }>({ status: "idle", message: "" });
+  const [isLocating, setIsLocating] = React.useState(false);
 
-  const handleSaveAddress = (e: React.FormEvent) => {
+  const checkPincode = async (pincode: string) => {
+    const trimmed = String(pincode || "").trim();
+    if (!trimmed || trimmed.length !== 6 || !/^\d{6}$/.test(trimmed) || trimmed.startsWith("0")) {
+      setPincodeState({ status: "invalid", message: "❌ Invalid PIN code. Must be 6 digits." });
+      return false;
+    }
+    setPincodeState({ status: "loading", message: "Checking delivery availability..." });
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${trimmed}`);
+      if (!res.ok) {
+        setPincodeState({ status: "invalid", message: "❌ Delivery Currently Unavailable" });
+        return false;
+      }
+      const data = await res.json();
+      if (data && data[0] && data[0].Status === "Success" && Array.isArray(data[0].PostOffice) && data[0].PostOffice.length > 0) {
+        setPincodeState({ status: "valid", message: "✓ Delivery Available" });
+        return true;
+      } else {
+        setPincodeState({ status: "invalid", message: "❌ Delivery Currently Unavailable" });
+        return false;
+      }
+    } catch (e) {
+      setPincodeState({ status: "invalid", message: "❌ Delivery Currently Unavailable" });
+      return false;
+    }
+  };
+
+  const handleGetCurrentLocation = (isEditing = false) => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          if (data && data.address) {
+            const updateObj = {
+              city: data.address.city || data.address.state_district || data.address.town || "",
+              state: data.address.state || "",
+              pincode: data.address.postcode || "",
+              street: data.address.road || data.address.suburb || "",
+            };
+            if (isEditing && editingAddr) {
+              setEditingAddr({ ...editingAddr, ...updateObj });
+            } else {
+              setNewAddr((prev) => ({ ...prev, ...updateObj }));
+            }
+            if (updateObj.pincode) checkPincode(updateObj.pincode);
+            toast.success("Location fetched successfully!");
+          }
+        } catch (e) {
+          toast.error("Failed to fetch address from location");
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      () => {
+        setIsLocating(false);
+        toast.error("Unable to retrieve your location. Please check permissions.");
+      }
+    );
+  };
+
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAddr.name.trim() || !newAddr.phone.trim() || !newAddr.house.trim() || !newAddr.street.trim() || !newAddr.pincode.trim()) {
       toast.error("Please fill in all required address fields!");
+      return;
+    }
+    const isValidPin = await checkPincode(newAddr.pincode);
+    if (!isValidPin) {
+      toast.error("❌ Delivery Currently Unavailable for this PIN code.");
       return;
     }
     const newId = `addr-${Date.now()}`;
@@ -161,11 +243,16 @@ function CheckoutPage() {
     });
   };
 
-  const handleUpdateAddress = (e: React.FormEvent) => {
+  const handleUpdateAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAddr) return;
     if (!editingAddr.name.trim() || !editingAddr.phone.trim() || !editingAddr.house.trim() || !editingAddr.street.trim() || !editingAddr.pincode.trim()) {
       toast.error("Please fill in all required address fields!");
+      return;
+    }
+    const isValidPin = await checkPincode(editingAddr.pincode);
+    if (!isValidPin) {
+      toast.error("❌ Delivery Currently Unavailable for this PIN code.");
       return;
     }
     editAddress(editingAddr.id, editingAddr);
@@ -186,7 +273,7 @@ function CheckoutPage() {
     toast.success("Address deleted successfully!");
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     // Step 2 Validation: Check cart items exist
     if (!checkoutItems || checkoutItems.length === 0) {
       toast.error("Your checkout is empty! Add products before placing an order.");
@@ -196,6 +283,17 @@ function CheckoutPage() {
     // Step 2 Validation: Check address is selected
     if (!selectedAddrId || !selectedAddressObj) {
       toast.error("Please select a delivery address!");
+      return;
+    }
+    const pinStr = String(selectedAddressObj.pincode || "").trim();
+    if (!/^[1-9][0-9]{5}$/.test(pinStr)) {
+      toast.error("❌ Delivery Currently Unavailable for this PIN code.");
+      return;
+    }
+
+    const isPinValid = await checkPincode(pinStr);
+    if (!isPinValid) {
+      toast.error("❌ Delivery Currently Unavailable for this PIN code. Order cannot be placed.");
       return;
     }
 
@@ -351,9 +449,20 @@ function CheckoutPage() {
               {showAddAddressForm && (
                 <form onSubmit={handleSaveAddress} className="rounded-xl border border-brand/40 bg-brand/5 p-4 sm:p-5 space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between border-b border-brand/20 pb-2">
-                    <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <Plus className="size-3.5 text-brand" /> Add New Delivery Address
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Plus className="size-3.5 text-brand" /> Add New Delivery Address
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => handleGetCurrentLocation(false)}
+                        disabled={isLocating}
+                        className="flex items-center gap-1 text-[10px] bg-brand/10 text-brand font-bold px-2 py-1 rounded hover:bg-brand/20 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <MapPin className="size-3" />
+                        {isLocating ? "Locating..." : "Use Current Location"}
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setShowAddAddressForm(false)}
@@ -443,8 +552,13 @@ function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-muted-foreground mb-1">
-                        Pincode <span className="text-destructive">*</span>
+                      <label className="flex items-center justify-between text-[11px] font-bold text-muted-foreground mb-1">
+                        <span>Pincode <span className="text-destructive">*</span></span>
+                        {pincodeState.status !== "idle" && !editingAddr && (
+                          <span className={`text-[9px] ${pincodeState.status === "valid" ? "text-emerald-500" : pincodeState.status === "invalid" ? "text-destructive" : "text-brand"}`}>
+                            {pincodeState.message}
+                          </span>
+                        )}
                       </label>
                       <input
                         type="text"
@@ -452,8 +566,15 @@ function CheckoutPage() {
                         maxLength={6}
                         placeholder="6-digit pincode"
                         value={newAddr.pincode}
-                        onChange={(e) => setNewAddr({ ...newAddr, pincode: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-foreground focus:border-brand focus:outline-none"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setNewAddr({ ...newAddr, pincode: val });
+                          setPincodeState({ status: "idle", message: "" });
+                          if (val.length === 6) checkPincode(val);
+                        }}
+                        className={`w-full rounded-lg border bg-background p-2.5 text-foreground focus:outline-none ${
+                          !editingAddr && pincodeState.status === "invalid" ? "border-destructive focus:border-destructive" : !editingAddr && pincodeState.status === "valid" ? "border-emerald-500 focus:border-emerald-500" : "border-border focus:border-brand"
+                        }`}
                       />
                     </div>
                     <div>
@@ -503,9 +624,20 @@ function CheckoutPage() {
               {editingAddr && (
                 <form onSubmit={handleUpdateAddress} className="rounded-xl border border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20 p-4 sm:p-5 space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between border-b border-blue-200 dark:border-blue-900 pb-2">
-                    <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <Edit className="size-3.5 text-blue-600" /> Edit Delivery Address
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Edit className="size-3.5 text-blue-600" /> Edit Delivery Address
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => handleGetCurrentLocation(true)}
+                        disabled={isLocating}
+                        className="flex items-center gap-1 text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <MapPin className="size-3" />
+                        {isLocating ? "Locating..." : "Use Current Location"}
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setEditingAddr(null)}
@@ -589,16 +721,28 @@ function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-muted-foreground mb-1">
-                        Pincode <span className="text-destructive">*</span>
+                      <label className="flex items-center justify-between text-[11px] font-bold text-muted-foreground mb-1">
+                        <span>Pincode <span className="text-destructive">*</span></span>
+                        {pincodeState.status !== "idle" && editingAddr && (
+                          <span className={`text-[9px] ${pincodeState.status === "valid" ? "text-emerald-500" : pincodeState.status === "invalid" ? "text-destructive" : "text-brand"}`}>
+                            {pincodeState.message}
+                          </span>
+                        )}
                       </label>
                       <input
                         type="text"
                         required
                         maxLength={6}
                         value={editingAddr.pincode}
-                        onChange={(e) => setEditingAddr({ ...editingAddr, pincode: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-foreground focus:border-brand focus:outline-none"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setEditingAddr({ ...editingAddr, pincode: val });
+                          setPincodeState({ status: "idle", message: "" });
+                          if (val.length === 6) checkPincode(val);
+                        }}
+                        className={`w-full rounded-lg border bg-background p-2.5 text-foreground focus:outline-none ${
+                          editingAddr && pincodeState.status === "invalid" ? "border-destructive focus:border-destructive" : editingAddr && pincodeState.status === "valid" ? "border-emerald-500 focus:border-emerald-500" : "border-border focus:border-brand"
+                        }`}
                       />
                     </div>
                     <div>
@@ -697,6 +841,7 @@ function CheckoutPage() {
                         key={addr.id}
                         onClick={() => {
                           setSelectedAddrId(addr.id);
+                          selectDeliveryAddress(addr);
                           setActiveStep(3);
                         }}
                         className={`relative flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
@@ -711,6 +856,7 @@ function CheckoutPage() {
                           checked={isSelected}
                           onChange={() => {
                             setSelectedAddrId(addr.id);
+                            selectDeliveryAddress(addr);
                             setActiveStep(3);
                           }}
                           className="mt-1 size-4 text-brand accent-brand cursor-pointer"
@@ -857,7 +1003,21 @@ function CheckoutPage() {
                     <div className="mt-3 pt-3 border-t border-border/60">
                       <UpiPaymentWidget
                         payableAmount={finalPayable}
-                        onPaymentSuccess={(details) => {
+                        onPaymentSuccess={async (details) => {
+                          if (!selectedAddrId || !selectedAddressObj) {
+                            toast.error("Please select a delivery address!");
+                            return;
+                          }
+                          const pinStr = String(selectedAddressObj.pincode || "").trim();
+                          if (!/^[1-9][0-9]{5}$/.test(pinStr)) {
+                            toast.error("❌ Delivery Currently Unavailable for this PIN code.");
+                            return;
+                          }
+                          const isPinValid = await checkPincode(pinStr);
+                          if (!isPinValid) {
+                            toast.error("❌ Delivery Currently Unavailable for this PIN code. Order cannot be placed.");
+                            return;
+                          }
                           const paymentDetails: PaymentDetails = {
                             method: "upi",
                             providerName: details.providerName,

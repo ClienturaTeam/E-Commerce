@@ -296,12 +296,7 @@
     }
   ],
   "cart": [],
-  "wishlist": [
-    {
-      "userId": "usr-demo",
-      "productId": "samsung-galaxy-s24"
-    }
-  ],
+  "wishlist": [],
   "addresses": [
     {
       "id": "addr-1",
